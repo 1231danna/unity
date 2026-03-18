@@ -1,0 +1,12 @@
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+WAR-build/
+WAR-build.zip
+*.csproj
+*.sln
+.vs/
