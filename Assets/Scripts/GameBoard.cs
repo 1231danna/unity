@@ -36,7 +36,20 @@ public class GameBoard : MonoBehaviour
     public static GameBoard instance;
     [SerializeField]
     Player[] playerPrefabs;
-    List<Player> allMyPlayers = new List<Player>();
+    public List<Player> allMyPlayers = new List<Player>();
+    public List<Player> GetPlayersByTeam(PlayerType type)
+    {
+        List<Player> result = new List<Player>();
+        foreach(var p in allMyPlayers)
+        {
+            if(p != null && p.team == type)
+            {
+                result.Add(p);
+            }
+        } 
+        return result;
+
+    }
 
     public void InitLogicTiles()
     {
@@ -196,6 +209,24 @@ public class GameBoard : MonoBehaviour
         return null;
     }
 
+    IEnumerator ShowAOETemporary(Player attacker, LogicTile centerTile, List<Vector2Int> shape)
+    {
+        
+        attacker.ForceFaceTarget(centerTile);
+        
+        Vector2Int facing = Player.GetDirectionTo(attacker.Tile, centerTile);
+        Debug.Log($"[DEBUG] 预览方向: {facing}");
+        
+        var area = GetAOEArea(centerTile, facing, shape);
+        ShowOneUITile(area, UITileType.Attack);
+
+        yield return new WaitForSeconds(1.0f);
+
+        CombatManager.instance.ExecuteAOE(attacker, centerTile, shape);
+
+        ClearAllUITiles();
+    }
+    
     public void ClickOneTile(LogicTile tile)
     {
         if(tile == null)
@@ -203,12 +234,28 @@ public class GameBoard : MonoBehaviour
             return;
         }
 
+        if(currentPlayer != null && currentPlayer.State == PlayState.Moving)
+        {
+            return;
+        }
+
         if(currentPlayer == null)
         {
             var player = tile.PlayerOnTile;
-            if(player != null && player.CanBeSelected())
+            if(player != null)
             {
-                currentPlayer = player;
+               if(player.CanBeSelected())
+                {
+                    currentPlayer = player;
+                }
+                else
+                {
+                    ShowUITile(player.Tile, player.MovePower, player.AttackRange);
+                }
+            }
+            else
+            {
+                ClearAllUITiles();
             }
         }
         else
@@ -217,11 +264,31 @@ public class GameBoard : MonoBehaviour
             {
                 currentPlayer.MoveTo(tile);
             }
+            else if (IsAttackRange(tile))
+            {
+                if(currentPlayer != null)
+                {
+                    var shape = currentPlayer.GetMyShape();
+                    StartCoroutine(ShowAOETemporary(currentPlayer, tile, shape));
+                    currentPlayer = null;
+                }
+                else
+                {
+                    CancelSelection();
+                }
+            }
             else
             {
-                currentPlayer.Recover();
-                currentPlayer = null;
+                if(currentPlayer.State == PlayState.MoveEnd)
+                {
+                    StandBy();
+                }
+                else
+                {
+                    CancelSelection();
+                }
             }
+
         }
         
     }
@@ -231,19 +298,54 @@ public class GameBoard : MonoBehaviour
         return moveTiles.Contains(tile);
     }
 
-    public void InitPlayers(int[] indexes)
+    public void InitPlayers(Vector2Int[] spawnCoords, int[] playerTypes)
     {
-        for(int i = 0; i < indexes.Length; i++)
+        int count = Math.Min(spawnCoords.Length, playerTypes.Length);
+        for(int i = 0; i < count; i++)
         {
-            var tile = logicTiles[indexes[i]];
-            var worldPos = GetTileWorldPos(tile);
-            var player = Instantiate(playerPrefabs[0]);
-            allMyPlayers.Add(player);
-            player.transform.position = worldPos + new Vector3(0.5f, 0f, 0f);
-
-            tile.PlayerOnTile = player;
-            player.Tile = tile;
+            int index = spawnCoords[i].y * tileSize.x + spawnCoords[i].x;
+            
+            if(index >=0 && index < logicTiles.Length)
+            {
+                CreatePlayerAtTile(logicTiles[index], playerTypes[i]);
+            }
         }
+
+        Player[] existingPlayers = GameObject.FindObjectsByType<Player>(FindObjectsSortMode.None);
+        foreach(var p in existingPlayers)
+        {
+            if(p.Tile == null)
+            {
+                Vector3Int cellPos = walkTilemap.WorldToCell(p.transform.position);
+                LogicTile tile = GetTileByPos(cellPos);
+                
+                if(tile != null && tile.PlayerOnTile == null)
+                {
+                    p.transform.position = walkTilemap.CellToWorld(cellPos) + new Vector3(0.5f, 0f, 0f);
+                    p.Tile = tile;
+                    tile.PlayerOnTile = p;
+                    if(!allMyPlayers.Contains(p))
+                    {
+                        allMyPlayers.Add(p);
+                    }
+                }
+            }
+        }
+    }
+
+    void CreatePlayerAtTile(LogicTile tile, int playerType)
+    {
+        if(tile.PlayerOnTile != null)
+        {
+            Debug.LogWarning("Tile already has a player on it!");
+            return;
+        }
+
+        var player = Instantiate(playerPrefabs[playerType]);
+        player.transform.position = GetTileWorldPos(tile) + new Vector3(0.5f, 0f, 0f);
+        player.Tile = tile;
+        tile.PlayerOnTile = player;
+        allMyPlayers.Add(player);
     }
 
     public Vector3 GetTileWorldPos(LogicTile tile)
@@ -276,4 +378,126 @@ public class GameBoard : MonoBehaviour
             player.NextTurn();
         }
     }
+
+    bool IsAttackRange(LogicTile tile)
+    {
+        return attackTiles.Contains(tile);
+    }
+
+    void CancelSelection()
+    {
+        if(currentPlayer != null)
+        {
+            currentPlayer.Recover();
+            currentPlayer = null;
+            ClearAllUITiles();
+        }
+    }
+
+    public void RemovePlayerFromList(Player player)
+    {
+        if(allMyPlayers.Contains(player))
+        {
+            allMyPlayers.Remove(player);
+        }
+    }
+
+    public LogicTile GetBestMoveTile(Player self, Player target)
+    {
+        foreach(var tile in logicTiles)
+        {
+            tile.Clear();
+        }
+
+        moveTiles.Clear();
+        search.Clear();
+
+        LogicTile startTile = self.Tile;
+        search.Enqueue(startTile);
+        startTile.MarkAsStart(self.MovePower);
+
+        while(search.Count > 0)
+        {
+            var tile = search.Dequeue();
+            if(tile != null)
+            {
+                moveTiles.Add(tile);
+                search.Enqueue(tile.GrowNorth());
+                search.Enqueue(tile.GrowEast());
+                search.Enqueue(tile.GrowSouth());
+                search.Enqueue(tile.GrowWest());
+            }
+        }
+
+        LogicTile bestTile = self.Tile;
+        int minDist = int.MaxValue;
+
+        foreach(var tile in moveTiles)
+        {
+            if(tile.PlayerOnTile != null && tile.PlayerOnTile != self) continue;
+            
+            int d = Mathf.Abs(tile.X - target.Tile.X) + Mathf.Abs(tile.Y - target.Tile.Y);
+            if(d < minDist)
+            {
+                minDist = d;
+                bestTile = tile;
+            }
+        }
+
+        ClearAllUITiles();
+        return bestTile;
+    }
+    
+    public static readonly List<Vector2Int> SingleShape = new List<Vector2Int> { new Vector2Int(0, 0) };
+    public static readonly List<Vector2Int> PierceShape = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(0, 1) };
+    public static readonly List<Vector2Int> CrossShape = new List<Vector2Int> { new Vector2Int(0,0), new Vector2Int(0,1), new Vector2Int(0,-1), new Vector2Int(1,0), new Vector2Int(-1,0) };
+    public static readonly List<Vector2Int> SquareShape = new List<Vector2Int> { new Vector2Int(-1,1), new Vector2Int(0,1), new Vector2Int(1,1), new Vector2Int(-1,0), new Vector2Int(0,0), new Vector2Int(1,0), new Vector2Int(-1,-1), new Vector2Int(0,-1), new Vector2Int(1,-1) };
+    public static readonly List<Vector2Int> FanShape = new List<Vector2Int> { new Vector2Int(0, 0), new Vector2Int(-1, 1), new Vector2Int(0, 1), new Vector2Int(1, 1), new Vector2Int(-2, 2), new Vector2Int(-1, 2), new Vector2Int(0, 2), new Vector2Int(1, 2), new Vector2Int(2, 2) };
+
+    public LogicTile GetTileByCoords(int x, int y)
+    {
+        if (x >= 0 && x < tileSize.x && y >= 0 && y < tileSize.y)
+        {
+            int index = y * tileSize.x + x;
+
+            if (index >= 0 && index < logicTiles.Length)
+            {
+                return logicTiles[index];
+            }
+        }
+
+        return null;
+    }
+
+    public List<LogicTile> GetAOEArea(LogicTile center, Vector2Int facing, List<Vector2Int> shape)
+    {
+        List<LogicTile> results = new List<LogicTile>();
+        
+        foreach (var offset in shape)
+        {
+            int rx = 0, ry = 0;
+            if (facing.y > 0) { rx = offset.x; ry = offset.y; }
+            else if (facing.y < 0) { rx = -offset.x; ry = -offset.y; }
+            else if (facing.x < 0) { rx = -offset.y; ry = offset.x; }
+            else if (facing.x > 0) { rx = offset.y; ry = -offset.x; }
+            else { rx = offset.x; ry = offset.y; }
+            
+            LogicTile t = GetTileByCoords(center.X + rx, center.Y + ry);
+            if (t != null) results.Add(t);
+        }
+        return results;
+    }
+
+    public void ShowAOEPreview(Player attacker, LogicTile centerTile)
+    {
+        Vector2Int facing = Player.GetDirectionTo(attacker.Tile, centerTile);
+
+        attacker.ForceFaceTarget(centerTile);
+
+        var shape = attacker.GetMyShape();
+        var area = GetAOEArea(centerTile, facing, shape);
+
+        ShowOneUITile(area, UITileType.Attack);
+    }
+
 }

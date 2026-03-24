@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5756872351709755060}
   - component: {fileID: 795366220316562511}
   - component: {fileID: 8032217895442298899}
-  - component: {fileID: 6213371101461774524}
+  - component: {fileID: 3079258118978078919}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -111,7 +111,7 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &6213371101461774524
+--- !u!114 &3079258118978078919
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -125,5 +125,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 8032217895442298899}
   movePower: 5
-  attackRange: 2
+  attackRange: 1
   moveSpeed: 5
+  unitType: 4
+  maxHP: 50
+  attack: 30
+  defense: 10
+  team: 0
+  AOEType: 3

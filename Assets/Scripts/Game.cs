@@ -6,14 +6,22 @@ public class Game : MonoBehaviour
     [SerializeField]
     GameBoard board = default;
 
+    [Header("Level Design")]
+    [SerializeField]
+    Vector2Int[] spawnPositions = default;
+    [SerializeField]
+    int[] playerTypes = default;
+
     void Awake()
     {
         board.InitLogicTiles();
-        board.InitPlayers(new int[] { 0 });
+        board.InitPlayers(spawnPositions, playerTypes);
     }
 
     void Update()
     {
+        if(TurnManager.instance.currentState != BattleState.PlayerTurn) return;
+
         if(Input.GetMouseButtonDown(0))
         {
             var mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -36,7 +44,8 @@ public class Game : MonoBehaviour
         }
         else if(Input.GetKeyDown(KeyCode.Return))
         {
-            board.NextTurn();
+            board.StandBy();
+            TurnManager.instance.SetState(BattleState.EnemyTurn);
         }
     }
 
