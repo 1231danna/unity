@@ -47,7 +47,14 @@ public class TurnManager : MonoBehaviour
         else if (newState == BattleState.PlayerTurn)
         {
             turnCount++;
-            Debug.Log($"====== 第 {turnCount} 回合 ======");
+            Debug.Log($"第 {turnCount} 回合 ");
+
+            var players = GameBoard.instance.GetPlayersByTeam(PlayerType.Player);
+            if(players.Count > 0)
+            {
+                CameraController.instance.FocusOn(players[0].transform.position);
+            }
+            
         }
 
         
@@ -81,6 +88,9 @@ public class TurnManager : MonoBehaviour
         {
             if(unit == null || unit.IsDead) continue;
 
+            CameraController.instance.FocusOn(unit.transform.position);
+            yield return new WaitForSeconds(0.8f);
+
             Player target = GetClosesEnemy(unit);
 
             if(target != null)
@@ -97,7 +107,21 @@ public class TurnManager : MonoBehaviour
                 int dist = Mathf.Abs(unit.EndTile.X - target.Tile.X) + Mathf.Abs(unit.EndTile.Y - target.Tile.Y);
                 if(dist <= unit.AttackRange)
                 {
-                    CombatManager.instance.StartCombat(unit, target);
+                    var shape = unit.GetMyShape();
+                    GameBoard.instance.ShowAOEPreview(unit, target.Tile);
+                    CombatManager.instance.PreviewAOEDamage(unit, target.Tile, shape);
+                    yield return new WaitForSeconds(1.0f);
+                    CombatManager.instance.CancelAOEPreview(unit, target.Tile, shape);
+                    GameBoard.instance.ClearAllUITiles();
+                    if (unit.AOEType == AOEType.Single)
+                    {
+                        CombatManager.instance.StartCombat(unit, target);
+                    }
+                    else
+                    {
+                        CombatManager.instance.ExecuteAOE(unit, target.Tile, shape);
+                    }
+
                     yield return new WaitForSeconds(0.5f);
                 }
                 else

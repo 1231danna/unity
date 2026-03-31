@@ -31,6 +31,13 @@ public class CombatManager : MonoBehaviour
         instance = this;
     }
 
+    public int CalculateDamage(Player attacker, Player defender)
+    {
+        float multiplier = GetAffinityMultiplier(attacker.UnitType, defender.UnitType);
+        int finalATK = Mathf.RoundToInt(attacker.Attack * multiplier);
+        return Mathf.Max(0, finalATK - defender.Defense);
+    }
+
     public void StartCombat(Player attacker, Player defender)
     {
         ExecuteAttack(attacker, defender);
@@ -54,9 +61,7 @@ public class CombatManager : MonoBehaviour
 
     public void ExecuteAttack(Player attacker, Player defender)
     {
-        float multiplier = GetAffinityMultiplier(attacker.UnitType, defender.UnitType);
-        int finalATK = Mathf.RoundToInt(attacker.Attack * multiplier);
-        int damage = Mathf.Max(0, finalATK - defender.Defense);
+        int damage = CalculateDamage(attacker, defender);
         
         Debug.Log($"{attacker.name} 对 {defender.name} 造成了 {damage} 点伤害！");
         defender.TakeDamage(damage);
@@ -87,8 +92,7 @@ public class CombatManager : MonoBehaviour
 
             if (target != null && target != attacker)
             {
-                float multiplier = GetAffinityMultiplier(attacker.UnitType, target.UnitType);
-                int damage = Mathf.Max(0, Mathf.RoundToInt(attacker.Attack * multiplier) - target.Defense);
+                int damage = CalculateDamage(attacker, target);
 
                 target.TakeDamage(damage);
                 Debug.Log($"AOE命中了 {target.name}造成 {damage} 点伤害");
@@ -96,6 +100,72 @@ public class CombatManager : MonoBehaviour
         }
 
         attacker.StandBy();
+    }
+
+    public void PreviewAOEDamage(Player attacker, LogicTile targetTile, List<Vector2Int> shape)
+    {
+        Vector2Int facing = Player.GetDirectionTo(attacker.Tile, targetTile);
+        List<LogicTile> area = GameBoard.instance.GetAOEArea(targetTile, facing, shape);
+
+        int totalCounterDamage = 0;
+
+        foreach (var tile in area)
+        {
+            if (tile == null) continue;
+            Player target = tile.PlayerOnTile;
+
+            if (target != null && target != attacker)
+            {
+                int predictedDamage = CalculateDamage(attacker, target);
+                
+                if (target.healthBar != null)
+                {
+                    target.healthBar.ShowPreview(target.currentHP, predictedDamage, target.maxHP);
+                }
+
+                if (attacker.AOEType == AOEType.Single)
+                {
+                    if (target.currentHP - predictedDamage > 0)
+                    {
+                        int distance = Mathf.Abs(attacker.Tile.X - target.Tile.X) + Mathf.Abs(attacker.Tile.Y - target.Tile.Y);
+                        if (distance <= target.AttackRange)
+                        {
+                            totalCounterDamage += CalculateDamage(target, attacker);
+                        }
+                    }
+                }
+            }
+        }
+
+        if (totalCounterDamage > 0 && attacker.healthBar != null)
+        {
+            attacker.healthBar.ShowPreview(attacker.currentHP, totalCounterDamage, attacker.maxHP);
+        }
+    }
+
+    public void CancelAOEPreview(Player attacker, LogicTile targetTile, List<Vector2Int> shape)
+    {
+        Vector2Int facing = Player.GetDirectionTo(attacker.Tile, targetTile);
+        List<LogicTile> area = GameBoard.instance.GetAOEArea(targetTile, facing, shape);
+
+        foreach (var tile in area)
+        {
+            if (tile == null) continue;
+            Player target = tile.PlayerOnTile;
+
+            if (target != null && target != attacker)
+            {
+                if (target.healthBar != null)
+                {
+                    target.healthBar.CancelPreview(target.currentHP, target.maxHP);
+                }
+            }
+        }
+
+        if (attacker.healthBar != null)
+        {
+            attacker.healthBar.CancelPreview(attacker.currentHP, attacker.maxHP);
+        }
     }
 
 }

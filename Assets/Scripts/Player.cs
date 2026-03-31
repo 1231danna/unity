@@ -64,7 +64,7 @@ public class Player : MonoBehaviour
     public UnitType UnitType => unitType;
 
     [SerializeField] 
-    int maxHP = 50;
+    public int maxHP = 50;
     public int currentHP { get; private set; }
     [SerializeField]
     int attack = 20;
@@ -74,6 +74,10 @@ public class Player : MonoBehaviour
     public int Defense => defense;
     public bool IsDead => currentHP <= 0;
     public PlayerType team;
+    LogicTile startTile;
+
+    [Header("UI")]
+    public HealthBar healthBar;
     
 
     public bool IsEnemy(Player other)
@@ -93,6 +97,11 @@ public class Player : MonoBehaviour
         board = GameBoard.instance;
         currentHP = maxHP;
         endTile = Tile;
+
+        if (healthBar != null)
+        {
+            healthBar.UpdateHP(currentHP, maxHP);
+        }
     }
 
     void SetAnimation(int x, int y, bool isActive = true)
@@ -106,8 +115,8 @@ public class Player : MonoBehaviour
     {
         if(State == PlayState.Idle && team == PlayerType.Player)
         {
+            startTile = Tile;
             State = PlayState.ReadyMove;
-            //Show move range
             board.ShowUITile(Tile, movePower, attackRange);
             SetAnimation(0, -1, true);
             return true;
@@ -126,6 +135,11 @@ public class Player : MonoBehaviour
     {
         if(path.Count >= 2)
         {
+            if (UIManager.instance != null) 
+            {
+                UIManager.instance.HideActionMenu();
+            }
+            
             State = PlayState.Moving;
             
             LogicTile destination = path[path.Count - 1];
@@ -155,14 +169,23 @@ public class Player : MonoBehaviour
         State = PlayState.MoveEnd;
         board.ShowUITile(endTile, 0, attackRange, false);
 
+        if (UIManager.instance != null)
+        {
+            UIManager.instance.ShowActionMenu(this);
+        }
+
     }
 
     public void GoBack()
     {
         State = PlayState.Idle;
         SetAnimation(0, -1);
-        board.ShowUITile(Tile, movePower, attackRange);
+        Tile = startTile;
+        endTile = startTile;
         transform.position = board.GetTileWorldPos(Tile) + new Vector3(0.5f, 0f, 0f);
+        board.ClearAllUITiles();
+        board.ShowUITile(Tile, movePower, attackRange);
+        UIManager.instance.ShowActionMenu(this);
     }
 
     public void Recover()
@@ -195,6 +218,11 @@ public class Player : MonoBehaviour
         if(currentHP < 0)
         {
             currentHP = 0;
+        }
+
+        if (healthBar != null)
+        {
+            healthBar.UpdateHP(currentHP, maxHP);
         }
 
         if(IsDead)
