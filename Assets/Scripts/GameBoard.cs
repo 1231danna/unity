@@ -32,7 +32,7 @@ public class GameBoard : MonoBehaviour
 
     Dictionary<Vector3, LogicTile> allLogicTileDict = new Dictionary<Vector3, LogicTile>();
 
-    public Player currentPlayer = null;
+    Player currentPlayer = null;
     public static GameBoard instance;
     [SerializeField]
     Player[] playerPrefabs;
@@ -50,8 +50,6 @@ public class GameBoard : MonoBehaviour
         return result;
 
     }
-
-    public LogicTile currentPreviewTile = null;
 
     public void InitLogicTiles()
     {
@@ -77,6 +75,7 @@ public class GameBoard : MonoBehaviour
             }
         }
 
+        //FindMovePaths();
 
         int index = 0;
         foreach(var pos in walkTilemap.cellBounds.allPositionsWithin)
@@ -87,6 +86,11 @@ public class GameBoard : MonoBehaviour
             index++;
         }
 
+        //var path = MoveToDestination(logicTiles[0], logicTiles[3]);
+        //for (int i = 0; i < path.Count; i++)
+        //{
+        //    Debug.Log("路径格子(" + path[i].X + "," + path[i].Y + ") ");
+        //}
     }
 
     public void ClearAllUITiles()
@@ -225,48 +229,14 @@ public class GameBoard : MonoBehaviour
     
     public void ClickOneTile(LogicTile tile)
     {
-        if (UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
-        {
-            return;
-        }
-        
         if(tile == null)
         {
             return;
         }
 
-        if(UIManager.instance.systemMenu.activeSelf)
-        {
-            UIManager.instance.HideAllMenus();
-            return;
-        }
-
-        if (currentPlayer != null && currentPlayer.State == PlayState.Grey)
-        {
-            currentPlayer = null;
-            return;
-        }
-        
         if(currentPlayer != null && currentPlayer.State == PlayState.Moving)
         {
             return;
-        }
-
-        if (UIManager.instance.actionMenu.activeSelf)
-        {
-            if (IsMoveRange(tile) || IsAttackRange(tile))
-            {
-                return;
-            }
-            else
-            {
-                CancelSelection();
-                if (UIManager.instance != null)
-                {
-                    UIManager.instance.HideActionMenu();
-                }
-                return;
-            }
         }
 
         if(currentPlayer == null)
@@ -277,10 +247,6 @@ public class GameBoard : MonoBehaviour
                if(player.CanBeSelected())
                 {
                     currentPlayer = player;
-                    if (UIManager.instance != null)
-                    {
-                        UIManager.instance.ShowActionMenu(currentPlayer);
-                    }
                 }
                 else
                 {
@@ -289,8 +255,6 @@ public class GameBoard : MonoBehaviour
             }
             else
             {
-                currentPlayer = null;
-                UIManager.instance.ShowSystemMenu();
                 ClearAllUITiles();
             }
         }
@@ -305,38 +269,8 @@ public class GameBoard : MonoBehaviour
                 if(currentPlayer != null)
                 {
                     var shape = currentPlayer.GetMyShape();
-                    if (currentPlayer.AOEType == AOEType.Single && tile.PlayerOnTile == null)
-                    {
-                        return;
-                    }
-
-                    if (currentPreviewTile != tile)
-                    {
-                        if (currentPreviewTile != null)
-                        {
-                            CombatManager.instance.CancelAOEPreview(currentPlayer, currentPreviewTile, shape);
-                        }
-                        currentPreviewTile = tile;
-                        currentPlayer.ForceFaceTarget(tile);
-                        ShowAOEPreview(currentPlayer, tile);
-                        CombatManager.instance.PreviewAOEDamage(currentPlayer, tile, shape);
-                    }
-                    else
-                    {
-                        CombatManager.instance.CancelAOEPreview(currentPlayer, tile, shape);
-                        currentPreviewTile = null;
-
-                        if (currentPlayer.AOEType == AOEType.Single)
-                        {
-                            CombatManager.instance.StartCombat(currentPlayer, tile.PlayerOnTile);
-                        }
-                        else
-                        {
-                            CombatManager.instance.ExecuteAOE(currentPlayer, tile, shape);
-                        }
-                        currentPlayer = null;
-                        ClearAllUITiles();
-                    }
+                    StartCoroutine(ShowAOETemporary(currentPlayer, tile, shape));
+                    currentPlayer = null;
                 }
                 else
                 {
@@ -345,23 +279,13 @@ public class GameBoard : MonoBehaviour
             }
             else
             {
-                if (currentPreviewTile != null && currentPlayer != null)
-                {
-                    CombatManager.instance.CancelAOEPreview(currentPlayer, currentPreviewTile, currentPlayer.GetMyShape());
-                    currentPreviewTile = null;
-                }
                 if(currentPlayer.State == PlayState.MoveEnd)
                 {
                     StandBy();
-                    UIManager.instance.HideActionMenu();
                 }
                 else
                 {
                     CancelSelection();
-                    if (UIManager.instance != null)
-                    {
-                        UIManager.instance.HideActionMenu();
-                    }
                 }
             }
 

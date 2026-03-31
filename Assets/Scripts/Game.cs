@@ -34,6 +34,19 @@ public class Game : MonoBehaviour
             //board.ShowUITile(worldPos, movePower, attackRange);
         }
 
+        if(Input.GetKeyDown(KeyCode.Space))
+        {
+            board.StandBy();
+        }
+        else if(Input.GetKeyDown(KeyCode.Backspace))
+        {
+            board.Cancel();
+        }
+        else if(Input.GetKeyDown(KeyCode.Return))
+        {
+            board.StandBy();
+            TurnManager.instance.SetState(BattleState.EnemyTurn);
+        }
     }
 
 }
