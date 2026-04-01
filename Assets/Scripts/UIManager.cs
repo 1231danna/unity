@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class UIManager : MonoBehaviour
 {
@@ -34,6 +35,10 @@ public class UIManager : MonoBehaviour
     Button quitBtn;
 
     Player currentUnit;
+
+    [Header("Game Over UI")]
+    public GameObject victoryPanel;
+    public GameObject failurePanel;
 
     void Awake()
     {
@@ -104,7 +109,7 @@ public class UIManager : MonoBehaviour
         HideActionMenu();
         if (currentUnit != null && GameBoard.instance != null)
         {
-            GameBoard.instance.ShowUITile(currentUnit.Tile, currentUnit.MovePower, currentUnit.AttackRange, true, false);
+            GameBoard.instance.ShowUITile(currentUnit, currentUnit.Tile, currentUnit.MovePower, currentUnit.AttackRange, true, false);
         }
     }
 
@@ -113,7 +118,7 @@ public class UIManager : MonoBehaviour
         HideActionMenu();
         if (currentUnit != null && GameBoard.instance != null)
         {
-            GameBoard.instance.ShowUITile(currentUnit.Tile, 0, currentUnit.AttackRange, false, true);
+            GameBoard.instance.ShowUITile(currentUnit, currentUnit.Tile, 0, currentUnit.AttackRange, false, true);
         }
     }
 
@@ -183,6 +188,32 @@ public class UIManager : MonoBehaviour
     public void OnExitBtnClick()
     {
         Application.Quit();
+    }
+
+    public void ShowVictoryPanel()
+    {
+        if (victoryPanel != null)
+        {
+            victoryPanel.SetActive(true);
+        }
+    }
+
+    public void GoToNextLevel(string sceneName)
+    {
+        SceneManager.LoadScene(sceneName);
+    }
+
+    public void ShowFailurePanel()
+    {
+        if (failurePanel != null)
+        {
+            failurePanel.SetActive(true);
+        }
+    }
+
+    public void RestartLevel()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
 }

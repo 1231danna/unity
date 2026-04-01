@@ -18,6 +18,8 @@ public class GameBoard : MonoBehaviour
     [SerializeField]
     Tilemap cannotWalkTilemap = default;
     [SerializeField]
+    Tilemap defenseTilemap = default;
+    [SerializeField]
     Transform uiTiles = default;
     [SerializeField]
     GameObject[] uiTilePrefabs;
@@ -77,13 +79,21 @@ public class GameBoard : MonoBehaviour
             }
         }
 
-
         int index = 0;
         foreach(var pos in walkTilemap.cellBounds.allPositionsWithin)
         {
             var worldPos = walkTilemap.CellToWorld(pos);
             allLogicTileDict.Add(worldPos, logicTiles[index]);
             logicTiles[index].LocalPos = pos;
+            if(cannotWalkTilemap.HasTile(pos))
+            {
+                logicTiles[index].isWalkable = false;
+            }
+            if (defenseTilemap != null && defenseTilemap.HasTile(pos))
+            {
+                logicTiles[index].terrainDefense = 2;
+                logicTiles[index].moveCost = 2;
+            }
             index++;
         }
 
@@ -98,11 +108,11 @@ public class GameBoard : MonoBehaviour
         uiTileObjects.Clear();
     }
     
-    public void ShowUITile(LogicTile tile, int movePower, int attackRange, bool showMove = true, bool showAttack = true)
+    public void ShowUITile(Player player, LogicTile tile, int movePower, int attackRange, bool showMove = true, bool showAttack = true)
     {
         ClearAllUITiles();
         // findway
-        FindMovePaths(tile, movePower);
+        FindMovePaths(player, tile, movePower);
         FindAttackPaths(attackRange);
         if(showMove)
         {
@@ -128,13 +138,12 @@ public class GameBoard : MonoBehaviour
         }
     }
 
-    void FindMovePaths(LogicTile startTile, int movePower)
+    void FindMovePaths(Player player, LogicTile startTile, int movePower)
     {
         foreach(var tile in logicTiles)
         {
             tile.Clear();
         }
-        
         moveTiles.Clear();
         search.Enqueue(startTile);
         startTile.MarkAsStart(movePower);
@@ -144,10 +153,19 @@ public class GameBoard : MonoBehaviour
             if(tile != null)
             {
                 moveTiles.Add(tile);
-                search.Enqueue(tile.GrowNorth());
-                search.Enqueue(tile.GrowEast());
-                search.Enqueue(tile.GrowSouth());
-                search.Enqueue(tile.GrowWest());
+                search.Enqueue(tile.GrowNorth(player));
+                search.Enqueue(tile.GrowEast(player));
+                search.Enqueue(tile.GrowSouth(player));
+                search.Enqueue(tile.GrowWest(player));
+            }
+        }
+
+        for (int i = moveTiles.Count - 1; i >= 0; i--)
+        {
+            LogicTile tile = moveTiles[i];
+            if (tile.PlayerOnTile != null && tile.PlayerOnTile != player && !tile.PlayerOnTile.isCover)
+            {
+                moveTiles.RemoveAt(i);
             }
         }
     }
@@ -156,6 +174,7 @@ public class GameBoard : MonoBehaviour
     {
         attackTiles.Clear();
         // moveTiles Edge
+        search.Clear();
         var boundTiles = LogicTile.GetBoundTiles(moveTiles);
 
         for (int i = 0; i < boundTiles.Count; i++)
@@ -284,7 +303,7 @@ public class GameBoard : MonoBehaviour
                 }
                 else
                 {
-                    ShowUITile(player.Tile, player.MovePower, player.AttackRange);
+                    ShowUITile(player, player.Tile, player.MovePower, player.AttackRange);
                 }
             }
             else
@@ -298,6 +317,19 @@ public class GameBoard : MonoBehaviour
         {
             if(IsMoveRange(tile))
             {
+                if (currentPlayer.isTank)
+                {
+                    var path = MoveToDestination(currentPlayer.Tile, tile);
+                    foreach (var pTile in path)
+                    {
+                        if (pTile.CoverOnTile != null)
+                        {
+                            Destroy(pTile.CoverOnTile.gameObject);
+                            pTile.CoverOnTile = null;
+                        }
+                    }
+                }
+                
                 currentPlayer.MoveTo(tile);
             }
             else if (IsAttackRange(tile))
@@ -305,7 +337,12 @@ public class GameBoard : MonoBehaviour
                 if(currentPlayer != null)
                 {
                     var shape = currentPlayer.GetMyShape();
-                    if (currentPlayer.AOEType == AOEType.Single && tile.PlayerOnTile == null)
+                    Player targetEntity = tile.PlayerOnTile;
+                    if (targetEntity == null)
+                    {
+                        targetEntity = tile.CoverOnTile;
+                    }
+                    if (currentPlayer.AOEType == AOEType.Single && targetEntity == null)
                     {
                         return;
                     }
@@ -328,7 +365,7 @@ public class GameBoard : MonoBehaviour
 
                         if (currentPlayer.AOEType == AOEType.Single)
                         {
-                            CombatManager.instance.StartCombat(currentPlayer, tile.PlayerOnTile);
+                            CombatManager.instance.StartCombat(currentPlayer, targetEntity);
                         }
                         else
                         {
@@ -395,11 +432,18 @@ public class GameBoard : MonoBehaviour
                 Vector3Int cellPos = walkTilemap.WorldToCell(p.transform.position);
                 LogicTile tile = GetTileByPos(cellPos);
                 
-                if(tile != null && tile.PlayerOnTile == null)
+                if(tile != null)
                 {
                     p.transform.position = walkTilemap.CellToWorld(cellPos) + new Vector3(0.5f, 0f, 0f);
                     p.Tile = tile;
-                    tile.PlayerOnTile = p;
+                    if (p.isCover) 
+                    {
+                        tile.CoverOnTile = p;
+                    }
+                    else
+                    {
+                        tile.PlayerOnTile = p;
+                    }
                     if(!allMyPlayers.Contains(p))
                     {
                         allMyPlayers.Add(p);
@@ -411,16 +455,37 @@ public class GameBoard : MonoBehaviour
 
     void CreatePlayerAtTile(LogicTile tile, int playerType)
     {
-        if(tile.PlayerOnTile != null)
+        Player prefabToSpawn = playerPrefabs[playerType];
+        if (prefabToSpawn.isCover)
         {
-            Debug.LogWarning("Tile already has a player on it!");
-            return;
+            if (tile.CoverOnTile != null)
+            {
+                Debug.LogWarning("Tile already has a cover on it!");
+                return;
+            }
+        }
+        else
+        {
+            if (tile.PlayerOnTile != null)
+            {
+                Debug.LogWarning("Tile already has a player on it!");
+                return;
+            }
         }
 
         var player = Instantiate(playerPrefabs[playerType]);
         player.transform.position = GetTileWorldPos(tile) + new Vector3(0.5f, 0f, 0f);
         player.Tile = tile;
-        tile.PlayerOnTile = player;
+        
+        if (player.isCover)
+        {
+            tile.CoverOnTile = player;
+        }
+        else
+        {
+            tile.PlayerOnTile = player;
+        }
+        
         allMyPlayers.Add(player);
     }
 
@@ -498,10 +563,10 @@ public class GameBoard : MonoBehaviour
             if(tile != null)
             {
                 moveTiles.Add(tile);
-                search.Enqueue(tile.GrowNorth());
-                search.Enqueue(tile.GrowEast());
-                search.Enqueue(tile.GrowSouth());
-                search.Enqueue(tile.GrowWest());
+                search.Enqueue(tile.GrowNorth(self));
+                search.Enqueue(tile.GrowEast(self));
+                search.Enqueue(tile.GrowSouth(self));
+                search.Enqueue(tile.GrowWest(self));
             }
         }
 

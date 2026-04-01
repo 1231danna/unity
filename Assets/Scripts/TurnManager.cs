@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem.XR.Haptics;
 
@@ -11,6 +12,13 @@ public enum BattleState
     Busy,
 }
 
+public enum VictoryType
+{
+    RoutEnemy,
+    DefeatBoss,
+    SurviveTurns,
+}
+
 public class TurnManager : MonoBehaviour
 {
     public static TurnManager instance;
@@ -18,6 +26,13 @@ public class TurnManager : MonoBehaviour
     public BattleState currentState { get; private set; } = BattleState.PlayerTurn;
 
     public int turnCount = 1;
+
+    [Header("Victory Conditions")]
+    public VictoryType victoryType = VictoryType.RoutEnemy;
+    public int targetSurviveTurns = 10;
+    public Player targetBoss;
+
+    public bool isGameOver = false;
 
     void Awake()
     {
@@ -48,6 +63,13 @@ public class TurnManager : MonoBehaviour
         {
             turnCount++;
             Debug.Log($"第 {turnCount} 回合 ");
+
+            CheckVictory();
+            CheckGameOver();
+            if(isGameOver)
+            {
+                return;
+            }
 
             var players = GameBoard.instance.GetPlayersByTeam(PlayerType.Player);
             if(players.Count > 0)
@@ -97,7 +119,7 @@ public class TurnManager : MonoBehaviour
             {
                 LogicTile bestTile = GameBoard.instance.GetBestMoveTile(unit, target);
 
-                GameBoard.instance.ShowUITile(unit.Tile, unit.MovePower, unit.AttackRange);
+                GameBoard.instance.ShowUITile(unit, unit.Tile, unit.MovePower, unit.AttackRange);
                 yield return new WaitForSeconds(0.5f);
                 unit.MoveTo(bestTile);
 
@@ -164,6 +186,66 @@ public class TurnManager : MonoBehaviour
             }
         }
         return closest;
+    }
+
+    public void CheckVictory()
+    {
+        if (isGameOver) return;
+        
+        bool isVictorious = false;
+
+        switch (victoryType)
+        {
+            case VictoryType.RoutEnemy:
+                if (GameBoard.instance.GetPlayersByTeam(PlayerType.Enemy).Count == 0)
+                {
+                    isVictorious = true;
+                }
+                break;
+
+            case VictoryType.DefeatBoss:
+                if (targetBoss == null || targetBoss.IsDead)
+                {
+                    isVictorious = true;
+                }
+                break;
+
+            case VictoryType.SurviveTurns:
+                if (turnCount > targetSurviveTurns)
+                {
+                    isVictorious = true;
+                }
+                break;
+        }
+
+        if (isVictorious)
+        {
+            isGameOver = true;
+            Debug.Log("Win!");
+            if (UIManager.instance != null)
+            {
+                UIManager.instance.ShowVictoryPanel();
+            }
+            SetState(BattleState.Busy);
+        }
+
+    }
+
+    public void CheckGameOver()
+    {
+        if (isGameOver) return;
+
+        if (GameBoard.instance.GetPlayersByTeam(PlayerType.Player).Count == 0)
+        {
+            isGameOver = true;
+            Debug.Log("Game Over!");
+            if (UIManager.instance != null)
+            {
+                UIManager.instance.ShowFailurePanel();
+            }
+            SetState(BattleState.Busy);
+        }
+        
     }
 
 }

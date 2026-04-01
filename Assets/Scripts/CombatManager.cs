@@ -11,19 +11,13 @@ public class CombatManager : MonoBehaviour
 
     public static CombatManager instance;
 
-    float[,] affinityChart = new float[,]
+    public float GetAffinityMultiplier(FactionType attackerFaction, FactionType defenderFaction)
     {
-        {1.0f, 0.5f, 2.0f, 1.0f, 1.0f},//Sword
-        {2.0f, 1.0f, 0.5f, 1.0f, 1.0f},//Lance
-        {0.5f, 2.0f, 1.0f, 1.0f, 1.0f},//Axe
-        {1.0f, 1.0f, 1.0f, 1.0f, 1.0f},//Bow
-        {1.0f, 1.0f, 1.0f, 1.0f, 1.0f}//Magic
-        //Sword, lance, Axe, Bow, Magic
-    };
-
-    public float GetAffinityMultiplier(UnitType Attacker, UnitType Defender)
-    {
-        return affinityChart[(int)Attacker, (int)Defender];
+        if (attackerFaction == FactionType.German && defenderFaction == FactionType.Allied)
+        {
+            return 1.15f;
+        }
+        return 1.0f;
     }
 
     void Awake()
@@ -33,16 +27,28 @@ public class CombatManager : MonoBehaviour
 
     public int CalculateDamage(Player attacker, Player defender)
     {
-        float multiplier = GetAffinityMultiplier(attacker.UnitType, defender.UnitType);
+        float multiplier = GetAffinityMultiplier(attacker.FactionType, defender.FactionType);
         int finalATK = Mathf.RoundToInt(attacker.Attack * multiplier);
-        return Mathf.Max(0, finalATK - defender.Defense);
+        int finalDefense = defender.Defense;
+        if (defender.Tile != null)
+        {
+            finalDefense += defender.Tile.terrainDefense;
+            if (defender.Tile.CoverOnTile != null && defender.Tile.CoverOnTile.coverType == 2)
+            {
+                if (!defender.isCover)
+                {
+                    finalDefense += 2;
+                }
+            }
+        }
+        return Mathf.Max(0, finalATK - finalDefense);
     }
 
     public void StartCombat(Player attacker, Player defender)
     {
         ExecuteAttack(attacker, defender);
 
-        if(!defender.IsDead)
+        if(!defender.IsDead && !defender.isCover)
         {
             int distance = Mathf.Abs(attacker.EndTile.X - defender.Tile.X) + Mathf.Abs(attacker.EndTile.Y - defender.Tile.Y);
             if (distance <= defender.AttackRange)
@@ -78,7 +84,10 @@ public class CombatManager : MonoBehaviour
 
         List<LogicTile> area = GameBoard.instance.GetAOEArea(targetTile, facing, shape);
 
-        if (attacker.AOEType == AOEType.Single && targetTile.PlayerOnTile == null)
+        Player mainTarget = targetTile.PlayerOnTile;
+        if (mainTarget == null) mainTarget = targetTile.CoverOnTile;
+        
+        if (attacker.AOEType == AOEType.Single && mainTarget == null)
         {
             Debug.Log("单体攻击无法打空地");
             return;
@@ -89,6 +98,7 @@ public class CombatManager : MonoBehaviour
             if (tile == null) continue;
             
             Player target = tile.PlayerOnTile;
+            if (target == null) target = tile.CoverOnTile;
 
             if (target != null && target != attacker)
             {
@@ -113,6 +123,7 @@ public class CombatManager : MonoBehaviour
         {
             if (tile == null) continue;
             Player target = tile.PlayerOnTile;
+            if (target == null) target = tile.CoverOnTile;
 
             if (target != null && target != attacker)
             {
@@ -123,7 +134,7 @@ public class CombatManager : MonoBehaviour
                     target.healthBar.ShowPreview(target.currentHP, predictedDamage, target.maxHP);
                 }
 
-                if (attacker.AOEType == AOEType.Single)
+                if (attacker.AOEType == AOEType.Single && !target.isCover)
                 {
                     if (target.currentHP - predictedDamage > 0)
                     {
@@ -152,6 +163,7 @@ public class CombatManager : MonoBehaviour
         {
             if (tile == null) continue;
             Player target = tile.PlayerOnTile;
+            if (target == null) target = tile.CoverOnTile;
 
             if (target != null && target != attacker)
             {

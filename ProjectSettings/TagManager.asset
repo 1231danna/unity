@@ -49,6 +49,9 @@ TagManager:
   - name: CantWalk
     uniqueID: 1906675077
     locked: 0
+  - name: Defense
+    uniqueID: 1173795697
+    locked: 0
   - name: UITile
     uniqueID: 1609448817
     locked: 0

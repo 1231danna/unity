@@ -9,7 +9,7 @@ public class LogicTile
     int leftMoveCost;
     int distance;
     [SerializeField]
-    int moveCost = 1;
+    public int moveCost = 1;
 
     const int ATTACK_COST = 1;
     int leftAttackCost;
@@ -20,8 +20,12 @@ public class LogicTile
     public LogicTile NextOnPath { get; private set; }
     public Vector3Int LocalPos { get; set; }
     public Player PlayerOnTile { get; set; }
+    public Player CoverOnTile { get; set; }
     LogicTile north, east, south, west;
     public bool HasPath => distance != int.MaxValue;
+
+    public bool isWalkable = true;
+    public int terrainDefense = 0;
 
     public LogicTile(int x, int y, TileBase tile)
     {
@@ -62,35 +66,48 @@ public class LogicTile
         leftAttackCost = range;
     }
 
-    LogicTile GrowPathTo(LogicTile neighbor)
+    LogicTile GrowPathTo(LogicTile neighbor, Player player)
     {
-        if(!HasPath || neighbor == null || neighbor.HasPath || leftMoveCost < neighbor.moveCost) 
+        if(!HasPath || neighbor == null || !neighbor.isWalkable || neighbor.HasPath || leftMoveCost < neighbor.moveCost)
         {
             return null;
         }
+        int cost = neighbor.moveCost;
+
+        if (neighbor.CoverOnTile != null)
+        {
+            if (neighbor.CoverOnTile.coverType == 1)
+            {
+                if (!player.isTank) return null;
+            }
+            else if (neighbor.CoverOnTile.coverType == 2)
+            {
+                cost += 1;
+            }
+        }
+        if (leftMoveCost < cost) return null;
 
         neighbor.distance = distance + 1;
-        neighbor.leftMoveCost = leftMoveCost - neighbor.moveCost;
+        neighbor.leftMoveCost = leftMoveCost - cost;
         neighbor.NextOnPath = this;
         return neighbor;
 
     }
 
-    public LogicTile GrowNorth() => GrowPathTo(north);
-    public LogicTile GrowEast() => GrowPathTo(east);
-    public LogicTile GrowSouth() => GrowPathTo(south);  
-    public LogicTile GrowWest() => GrowPathTo(west);
+    public LogicTile GrowNorth(Player p) => GrowPathTo(north, p);
+    public LogicTile GrowEast(Player p) => GrowPathTo(east, p);
+    public LogicTile GrowSouth(Player p) => GrowPathTo(south, p);
+    public LogicTile GrowWest(Player p) => GrowPathTo(west, p);
 
     LogicTile GrowAttackPathTo(LogicTile neighbor)
     {
-        if(!HasPath || neighbor == null || neighbor.HasPath || leftAttackCost < ATTACK_COST) 
+        if(!HasPath || neighbor == null || !neighbor.isWalkable || neighbor.HasPath || leftAttackCost < ATTACK_COST)
         {
             return null;
         }
 
         neighbor.distance = distance + 1;
         neighbor.leftAttackCost = leftAttackCost - ATTACK_COST;
-        //neighbor.NextOnPath = this;
         return neighbor;
 
     }

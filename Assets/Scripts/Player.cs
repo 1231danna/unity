@@ -12,13 +12,11 @@ public enum PlayState
     Grey,
 }
 
-public enum UnitType
+public enum FactionType
 {
-    Sword,
-    Lance,
-    Axe,
-    Bow,
-    Magic
+    Allied,
+    German,
+    None
 }
 
 public enum PlayerType
@@ -60,8 +58,9 @@ public class Player : MonoBehaviour
     public LogicTile EndTile => endTile;
 
     [Header("CombatStatus")]
-    [SerializeField] UnitType unitType;
-    public UnitType UnitType => unitType;
+    [SerializeField] 
+    FactionType factionType;
+    public FactionType FactionType => factionType;
 
     [SerializeField] 
     public int maxHP = 50;
@@ -78,7 +77,11 @@ public class Player : MonoBehaviour
 
     [Header("UI")]
     public HealthBar healthBar;
-    
+
+    [Header("Class/Cover Settings")]
+    public bool isTank = false;
+    public bool isCover = false;
+    public int coverType = 0;
 
     public bool IsEnemy(Player other)
     {
@@ -117,7 +120,7 @@ public class Player : MonoBehaviour
         {
             startTile = Tile;
             State = PlayState.ReadyMove;
-            board.ShowUITile(Tile, movePower, attackRange);
+            board.ShowUITile(this, Tile, movePower, attackRange);
             SetAnimation(0, -1, true);
             return true;
         }
@@ -141,6 +144,14 @@ public class Player : MonoBehaviour
             }
             
             State = PlayState.Moving;
+            if (this.isCover) 
+            {
+                this.Tile.CoverOnTile = null;
+            }
+            else 
+            {
+                this.Tile.PlayerOnTile = null;
+            }
             
             LogicTile destination = path[path.Count - 1];
             this.Tile = destination;
@@ -165,9 +176,18 @@ public class Player : MonoBehaviour
                     yield return null;
                 }
             }
+
+            if (this.isCover) 
+            {
+                this.Tile.CoverOnTile = this;
+            }
+            else 
+            {
+                this.Tile.PlayerOnTile = this;
+            }
         }
         State = PlayState.MoveEnd;
-        board.ShowUITile(endTile, 0, attackRange, false);
+        board.ShowUITile(this, endTile, 0, attackRange, false);
 
         if (UIManager.instance != null)
         {
@@ -178,13 +198,29 @@ public class Player : MonoBehaviour
 
     public void GoBack()
     {
+        if (this.isCover) 
+        {
+            Tile.CoverOnTile = null;
+        }
+        else 
+        {
+            Tile.PlayerOnTile = null;
+        }
         State = PlayState.Idle;
         SetAnimation(0, -1);
         Tile = startTile;
         endTile = startTile;
+        if (this.isCover) 
+        {
+            Tile.CoverOnTile = this;
+        }
+        else 
+        {
+            Tile.PlayerOnTile = this;
+        }
         transform.position = board.GetTileWorldPos(Tile) + new Vector3(0.5f, 0f, 0f);
         board.ClearAllUITiles();
-        board.ShowUITile(Tile, movePower, attackRange);
+        board.ShowUITile(this, Tile, movePower, attackRange);
         UIManager.instance.ShowActionMenu(this);
     }
 
@@ -200,9 +236,6 @@ public class Player : MonoBehaviour
         State = PlayState.Grey;
         SetAnimation(0, 0, false);
         board.ClearAllUITiles();
-        Tile.PlayerOnTile = null;
-        Tile = endTile;
-        Tile.PlayerOnTile = this;
     }
 
     public void NextTurn()
@@ -237,16 +270,25 @@ public class Player : MonoBehaviour
         board.ClearAllUITiles();
         if (Tile != null)
         {
-            Tile.PlayerOnTile = null;
+            if (this.isCover) Tile.CoverOnTile = null;
+            else Tile.PlayerOnTile = null;
         }
 
         if (endTile != null)
         {
-            endTile.PlayerOnTile = null;
+            if (this.isCover) endTile.CoverOnTile = null;
+            else endTile.PlayerOnTile = null;
         }
 
         Debug.Log($"{gameObject.name} is dead.");
         GameBoard.instance.RemovePlayerFromList(this);
+        
+        if(TurnManager.instance != null)
+        {
+            TurnManager.instance.CheckGameOver();
+            TurnManager.instance.CheckVictory();
+        }
+        
         Destroy(gameObject);
     }
 

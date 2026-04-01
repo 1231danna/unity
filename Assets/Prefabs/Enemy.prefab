@@ -77,7 +77,7 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 1057555213
-  m_SortingLayer: 4
+  m_SortingLayer: 5
   m_SortingOrder: 0
   m_Sprite: {fileID: 998649568, guid: fb2881139a4070b4ab54bac03d1d9fcb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -127,13 +127,16 @@ MonoBehaviour:
   animator: {fileID: 3624691913093350452}
   movePower: 3
   attackRange: 1
-  moveSpeed: 3
-  unitType: 1
+  moveSpeed: 10
+  factionType: 1
   maxHP: 50
   attack: 10
   defense: 20
   team: 1
   healthBar: {fileID: 3863458646966179167}
+  isTank: 0
+  isCover: 0
+  coverType: 0
   AOEType: 0
 --- !u!1001 &1883669099566269273
 PrefabInstance:

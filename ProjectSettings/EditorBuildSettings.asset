@@ -6,14 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
     path: Assets/MegaBook/Scenes/Dark room.unity
     guid: 251a01d6196fc294a97184f9c06c43df
   - enabled: 1
-    path: Assets/Scenes/Demo.unity
-    guid: 92c876ceb1dbf4b4d8434ffd361caa65
+    path: Assets/Scenes/Battle1.unity
+    guid: a2f832c536a6120478caac797b67875d
+  - enabled: 1
+    path: Assets/Scenes/DarkRoom2.unity
+    guid: 1faad7b4ec844be48b864ebee6dfc72a
+  - enabled: 1
+    path: Assets/Scenes/Battle2.unity
+    guid: 05c61fd50c3dd2649a06a9abbd1d4d2f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
