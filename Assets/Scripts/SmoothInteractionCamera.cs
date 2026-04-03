@@ -6,7 +6,7 @@ public class SmoothInteractionCamera : MonoBehaviour
     [Header("相机目标锚点")]
     public Transform initialAnchor;
     public Transform notebookAnchor;
-    public Transform workingboardAnchor;
+    public Transform workingboardAnchor; // 改为 public，供其他脚本判断
     public Transform newspaperAnchor;
 
     [Header("UI 按钮引用")]
@@ -25,10 +25,10 @@ public class SmoothInteractionCamera : MonoBehaviour
     public float breatheAmplitude = 0.05f;
     public float breatheSpeed = 0.8f;
 
-    private Transform targetAnchor;
+    [HideInInspector] public Transform targetAnchor; // 改为 public，方便外部判断当前目标
     private Vector2 currentMouseOffset;
     private float breatheTimer;
-    private bool isFrozen = false; // 镜头锁定开关
+    private bool isFrozen = false; 
 
     void Start()
     {
@@ -36,20 +36,17 @@ public class SmoothInteractionCamera : MonoBehaviour
         UpdateUIButtonVisibility();
     }
 
-    // 提供给 Manager 调用
     public void SetCameraFrozen(bool state)
     {
         isFrozen = state;
-        // 锁定后强制清空偏移量，防止镜头歪着卡死
         if (state) currentMouseOffset = Vector2.zero;
     }
 
     void Update()
     {
-        // 【关键改动】如果处于锁定状态，直接跳过所有交互逻辑
         if (isFrozen) return;
 
-        // 1. 点击检测
+        // 1. 点击检测 (处理视角切换)
         if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -65,7 +62,6 @@ public class SmoothInteractionCamera : MonoBehaviour
                 else if (name.Contains("newspaper"))
                 {
                     targetAnchor = newspaperAnchor;
-                    // 通知 Manager 冻结相机并处理 UI
                     NewspaperManager nm = Object.FindFirstObjectByType<NewspaperManager>();
                     if (nm != null) nm.OnOpenNewspaper();
                 }
