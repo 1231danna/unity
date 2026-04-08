@@ -6,9 +6,13 @@ public class ObjectClicker : MonoBehaviour
     public PanelController panelController;
     private SmoothInteractionCamera camScript;
 
+    [Header("视角切换目标物体")]
+    public GameObject notebookObject;     // 在 Inspector 面板把笔记本模型拖进来
+    public GameObject workingboardObject; // 在 Inspector 面板把桌子模型拖进来
+
     void Start()
     {
-        // 自动获取主相机上的相机交互脚本
+        // 自动获取相机脚本
         camScript = Camera.main.GetComponent<SmoothInteractionCamera>();
     }
 
@@ -16,31 +20,42 @@ public class ObjectClicker : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            // 1. 如果点在 UI 上，不处理
+            // 1. 如果点在 UI 上（比如点按钮），就不触发场景物体的射线检测
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
-            // 2. 【核心拦截】：如果相机当前不在看工作板，不允许点照片
-            if (camScript != null)
-            {
-                if (camScript.targetAnchor != camScript.workingboardAnchor)
-                {
-                    // 还没靠近工作板，不执行后面的弹出逻辑
-                    return; 
-                }
-            }
-
-            // 3. 执行射线检测
+            // 2. 发射射线
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                PhotoItem item = hit.collider.GetComponent<PhotoItem>();
-                if (item != null && item.highResSprite != null)
+                GameObject hitObj = hit.collider.gameObject;
+
+                // --- 逻辑 A: 点击物体切换镜头 ---
+
+                // 如果点到了笔记本物体
+                if (hitObj == notebookObject)
                 {
-                    // 弹出大图面板
-                    panelController.Show(item.highResSprite);
-                    
-                    // (可选) 如果你希望弹出照片时相机完全锁定，取消下面注释
-                    // camScript.SetCameraFrozen(true);
+                    camScript.targetAnchor = camScript.notebookAnchor;
+                    camScript.UpdateUIButtonVisibility();
+                    return; // 切换了镜头就结束本次 Update，不往下执行
+                }
+
+                // 如果点到了工作板（桌子）物体
+                if (hitObj == workingboardObject)
+                {
+                    camScript.targetAnchor = camScript.workingboardAnchor;
+                    camScript.UpdateUIButtonVisibility();
+                    return;
+                }
+
+                // --- 逻辑 B: 点击档案弹出大图 (仅在已经处于工作板视角时生效) ---
+
+                if (camScript != null && camScript.targetAnchor == camScript.workingboardAnchor)
+                {
+                    PhotoItem item = hitObj.GetComponent<PhotoItem>();
+                    if (item != null && item.highResSprite != null)
+                    {
+                        panelController.Show(item.highResSprite);
+                    }
                 }
             }
         }

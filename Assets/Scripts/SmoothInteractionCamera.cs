@@ -21,11 +21,13 @@ public class SmoothInteractionCamera : MonoBehaviour
     public float mouseSmoothTime = 2f;
 
     [Header("呼吸感设置")]
-    public float defaultBreatheAmplitude = 0.05f; // 初始视角的正常幅度
-    public float focusedBreatheAmplitude = 0.01f; // 交互视角的微弱幅度
+    public float defaultBreatheAmplitude = 0.05f;
+    public float focusedBreatheAmplitude = 0.01f;
     public float breatheSpeed = 0.8f;
 
     [HideInInspector] public Transform targetAnchor;
+    [HideInInspector] public bool isShowingDocument = false; // 新增：是否正在显示档案面板
+
     private Vector2 currentMouseOffset;
     private float breatheTimer;
     private float currentBreatheAmplitude;
@@ -38,80 +40,40 @@ public class SmoothInteractionCamera : MonoBehaviour
         UpdateUIButtonVisibility();
     }
 
-    // 供外部调用：冻结或解冻相机摆动
     public void SetCameraFrozen(bool state)
     {
         isFrozen = state;
-        if (state) currentMouseOffset = Vector2.zero; // 冻结时强制归位
     }
 
     void Update()
     {
-        // 如果处于冻结状态（如正在看报纸UI），跳过点击逻辑和鼠标偏移计算
-        if (isFrozen)
+        if (targetAnchor == initialAnchor && !isFrozen)
         {
-            breatheTimer += Time.deltaTime * breatheSpeed;
-            return;
-        }
-
-        // 1. 点击检测 (仅限初始视角才允许切换)
-        if (Input.GetMouseButtonDown(0))
-        {
-            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                return;
-
-            if (targetAnchor == initialAnchor)
-            {
-                Ray ray = GetComponent<Camera>().ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out RaycastHit hit))
-                {
-                    string name = hit.collider.gameObject.name.ToLower();
-
-                    if (name.Contains("notebook"))
-                    {
-                        targetAnchor = notebookAnchor;
-                        UpdateUIButtonVisibility();
-                    }
-                    else if (name.Contains("workingboard"))
-                    {
-                        targetAnchor = workingboardAnchor;
-                        UpdateUIButtonVisibility();
-                    }
-                    else if (name.Contains("newspaper"))
-                    {
-                        // 点击报纸逻辑：不移动相机，直接冻结并开启UI
-                        SetCameraFrozen(true);
-                        if (exitButton != null) exitButton.SetActive(false);
-
-                        NewspaperManager nm = Object.FindFirstObjectByType<NewspaperManager>();
-                        if (nm != null) nm.OnOpenNewspaper();
-                    }
-                }
-            }
-        }
-
-        // 2. 动态呼吸幅度切换
-        float targetAmp = (targetAnchor == initialAnchor) ? defaultBreatheAmplitude : focusedBreatheAmplitude;
-        currentBreatheAmplitude = Mathf.Lerp(currentBreatheAmplitude, targetAmp, Time.deltaTime * moveSpeed);
-
-        // 3. 初始视角的鼠标偏移计算
-        if (targetAnchor == initialAnchor)
-        {
-            float mouseX = (Input.mousePosition.x / Screen.width) - 0.5f;
-            float mouseY = (Input.mousePosition.y / Screen.height) - 0.45f; // 向上偏移
-            currentMouseOffset.x = Mathf.Lerp(currentMouseOffset.x, mouseX * mouseOffsetRange, Time.deltaTime * mouseSmoothTime);
-            currentMouseOffset.y = Mathf.Lerp(currentMouseOffset.y, mouseY * mouseOffsetRange, Time.deltaTime * mouseSmoothTime);
+            Vector2 mousePos = new Vector2(Input.mousePosition.x / Screen.width, Input.mousePosition.y / Screen.height);
+            Vector2 targetOffset = new Vector2((mousePos.x - 0.5f) * mouseOffsetRange, (mousePos.y - 0.5f) * mouseOffsetRange);
+            currentMouseOffset = Vector2.Lerp(currentMouseOffset, targetOffset, Time.deltaTime * mouseSmoothTime);
+            currentBreatheAmplitude = Mathf.Lerp(currentBreatheAmplitude, defaultBreatheAmplitude, Time.deltaTime * 5f);
         }
         else
         {
+            currentBreatheAmplitude = Mathf.Lerp(currentBreatheAmplitude, focusedBreatheAmplitude, Time.deltaTime * 5f);
             currentMouseOffset = Vector2.Lerp(currentMouseOffset, Vector2.zero, Time.deltaTime * 5f);
         }
 
         breatheTimer += Time.deltaTime * breatheSpeed;
     }
 
-    void UpdateUIButtonVisibility()
+    // 核心修改：增加对档案状态的判断
+    public void UpdateUIButtonVisibility()
     {
+        // 如果正在看档案，强制隐藏所有相机自带按钮
+        if (isShowingDocument)
+        {
+            if (backButton != null) backButton.SetActive(false);
+            if (exitButton != null) exitButton.SetActive(false);
+            return;
+        }
+
         bool isInitial = (targetAnchor == initialAnchor);
         if (backButton != null) backButton.SetActive(!isInitial);
         if (exitButton != null) exitButton.SetActive(isInitial);
@@ -137,20 +99,20 @@ public class SmoothInteractionCamera : MonoBehaviour
 
         transform.position = Vector3.Lerp(transform.position, finalPos, Time.deltaTime * moveSpeed);
         transform.rotation = Quaternion.Slerp(transform.rotation, finalRot, Time.deltaTime * rotateSpeed);
+
+        // 每一帧或状态改变时同步 UI 状态
+        UpdateUIButtonVisibility();
     }
 
     public void BackToInitialView()
     {
         targetAnchor = initialAnchor;
         SetCameraFrozen(false);
-        UpdateUIButtonVisibility();
     }
 
     public void ExitGame()
     {
+        Debug.Log("退出游戏");
         Application.Quit();
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#endif
     }
 }
