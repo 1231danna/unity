@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using UnityEditor.Compilation;
-using Unity.Collections;
 
 namespace MegaBook
 {
@@ -42,8 +41,6 @@ namespace MegaBook
 
 		static void LogPlayModeState(PlayModeStateChange state)
 		{
-			NativeLeakDetection.Mode = NativeLeakDetectionMode.Disabled;
-
 			if ( state == PlayModeStateChange.ExitingEditMode )
 			{
 #if UNITY_2023_1_OR_NEWER
