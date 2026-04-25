@@ -31,13 +31,14 @@ public class SmoothInteractionCamera : MonoBehaviour
     private Vector2 currentMouseOffset;
     private float breatheTimer;
     private float currentBreatheAmplitude;
-    private bool isFrozen = false;
+    private bool isFrozen = true;
 
     void Start()
     {
         if (initialAnchor != null) targetAnchor = initialAnchor;
         currentBreatheAmplitude = defaultBreatheAmplitude;
         UpdateUIButtonVisibility();
+        SetCameraFrozen(true);
     }
 
     public void SetCameraFrozen(bool state)
