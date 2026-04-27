@@ -11,18 +11,14 @@ public class NotebookTurn : MonoBehaviour
     [System.Serializable]
     public class StepUI
     {
-        public GameObject rootGroup;      // 这一步的UI父物体
-        public Button startBtn;           // “阅读”按钮
-        public TextMeshProUGUI textMsg;   // 文本内容
-        public Button nextBtn;            // “下一步”按钮
+        public GameObject rootGroup;
+        public Button startBtn;
+        public TextMeshProUGUI textMsg;
+        public Button nextBtn;
 
         [Header("交互逻辑选择")]
-        public bool isSceneJump;          // 勾选这个，点击nextBtn就跳场景
-
-        [Tooltip("直接把场景文件拖到这里")]
-        public Object sceneToLoad;        // 支持直接拖拽场景文件！
-
-        [Tooltip("如果不跳场景，书会翻到这一页")]
+        public bool isSceneJump;
+        public Object sceneToLoad;
         public int pageToTurnTo;
     }
 
@@ -30,6 +26,12 @@ public class NotebookTurn : MonoBehaviour
     public EndlessBook book;
     public SmoothInteractionCamera camScript;
     public Transform notebookAnchor;
+
+    [Header("冲刺特效设置")]
+    public CanvasGroup transitionOverlay; // 拖入那个黑屏Image
+    public float dashMoveSpeed = 30f;     // 既然是急速，建议设大一点
+    public float dashRotateSpeed = 20f;
+    public float timeToBlack = 0.5f;      // 0.5秒撞完并黑屏
 
     [Header("交互步骤配置")]
     public List<StepUI> steps;
@@ -40,6 +42,13 @@ public class NotebookTurn : MonoBehaviour
 
     void Start()
     {
+        // 初始确保黑屏是隐藏且透明的
+        if (transitionOverlay != null)
+        {
+            transitionOverlay.alpha = 0f;
+            transitionOverlay.gameObject.SetActive(false);
+        }
+
         for (int i = 0; i < steps.Count; i++)
         {
             int index = i;
@@ -52,7 +61,7 @@ public class NotebookTurn : MonoBehaviour
             if (s.nextBtn != null)
             {
                 if (s.isSceneJump)
-                    s.nextBtn.onClick.AddListener(() => LoadSpecificScene(s.sceneToLoad));
+                    s.nextBtn.onClick.AddListener(() => StartCoroutine(TransitionAndLoad(s.sceneToLoad)));
                 else
                     s.nextBtn.onClick.AddListener(NextPageAction);
             }
@@ -73,13 +82,70 @@ public class NotebookTurn : MonoBehaviour
         }
     }
 
+    // --- 核心转场逻辑 ---
+    IEnumerator TransitionAndLoad(Object sceneObj)
+    {
+        if (sceneObj == null)
+        {
+            Debug.LogError("没有分配场景！");
+            yield break;
+        }
+
+        // 1. 隐藏当前UI
+        steps[currentIdx].rootGroup.SetActive(false);
+
+        // 2. 设置相机冲刺目标为 AnchorTurn
+        if (camScript != null)
+        {
+            // 寻找名为 AnchorTurn 的子物体
+            Transform dashTarget = notebookAnchor.Find("AnchorTurn");
+
+            if (dashTarget != null)
+            {
+                camScript.SetCameraFrozen(false);
+                camScript.moveSpeed = dashMoveSpeed;
+                camScript.rotateSpeed = dashRotateSpeed;
+                camScript.targetAnchor = dashTarget; // 冲向深处的点
+                Debug.Log("冲刺开始：目标 AnchorTurn");
+            }
+            else
+            {
+                Debug.LogWarning("未在 notebookAnchor 下找到名为 AnchorTurn 的物体！将直接黑屏。");
+            }
+        }
+
+        // 3. 开启黑屏渐变
+        if (transitionOverlay != null)
+        {
+            transitionOverlay.gameObject.SetActive(true);
+            transitionOverlay.alpha = 0f;
+        }
+
+        float elapsed = 0;
+        while (elapsed < timeToBlack)
+        {
+            elapsed += Time.deltaTime;
+            if (transitionOverlay != null)
+            {
+                transitionOverlay.alpha = Mathf.Clamp01(elapsed / timeToBlack);
+            }
+            yield return null;
+        }
+
+        if (transitionOverlay != null) transitionOverlay.alpha = 1f;
+
+        // 4. 跳转场景
+        yield return new WaitForSeconds(0.1f);
+        SceneManager.LoadScene(sceneObj.name);
+    }
+
+    // --- 以下为原有逻辑，保持不变 ---
     IEnumerator TypeEffect(StepUI s)
     {
         isTyping = true;
         s.startBtn.gameObject.SetActive(false);
         s.textMsg.gameObject.SetActive(true);
         s.textMsg.maxVisibleCharacters = 0;
-
         string fullText = s.textMsg.text;
         int totalCharacters = fullText.Length;
         float timer = 0f;
@@ -102,7 +168,6 @@ public class NotebookTurn : MonoBehaviour
             }
             yield return null;
         }
-
         s.nextBtn.gameObject.SetActive(true);
         yield return new WaitForSeconds(0.1f);
         isTyping = false;
@@ -114,20 +179,6 @@ public class NotebookTurn : MonoBehaviour
         book.TurnToPage(steps[currentIdx].pageToTurnTo, (EndlessBook.PageTurnTimeTypeEnum)0, 1.0f, 0, null, null, null);
         currentIdx++;
         StartCoroutine(ShowUIDelayed(currentIdx, 1.2f));
-    }
-
-    // --- 核心改动：自动识别拖进去的场景名字 ---
-    void LoadSpecificScene(Object sceneObj)
-    {
-        if (sceneObj != null)
-        {
-            Debug.Log("准备跳转场景: " + sceneObj.name);
-            SceneManager.LoadScene(sceneObj.name);
-        }
-        else
-        {
-            Debug.LogError("你勾选了跳转，但没拖场景文件进去！");
-        }
     }
 
     IEnumerator ShowUIDelayed(int index, float delay)
