@@ -1,26 +1,34 @@
-using EPOOutline; // 必须引入这个命名空间
+using EPOOutline;
 using UnityEngine;
 
 public class HoverOutline : MonoBehaviour
 {
     private Outlinable _outlinable;
+    public bool isTutorialTarget = false; // 只有在 TutorialManager 中被设为 true，鼠标移入才会发光
 
     void Start()
     {
         _outlinable = GetComponent<Outlinable>();
-        // 初始状态下关闭描边
         if (_outlinable != null) _outlinable.enabled = false;
     }
 
-    // 鼠标移入显示描边
     void OnMouseEnter()
     {
-        if (_outlinable != null) _outlinable.enabled = true;
+        if (isTutorialTarget && _outlinable != null) 
+            _outlinable.enabled = true;
     }
 
-    // 鼠标移开消失描边
     void OnMouseExit()
     {
-        if (_outlinable != null) _outlinable.enabled = false;
+        if (isTutorialTarget && _outlinable != null) 
+            _outlinable.enabled = false;
+    }
+
+    // 供 TutorialManager 调用的接口
+    public void SetTutorialTarget(bool active)
+    {
+        isTutorialTarget = active;
+        // 如果被设为 false，立即关掉高光
+        if (!active && _outlinable != null) _outlinable.enabled = false;
     }
 }
