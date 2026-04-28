@@ -41,7 +41,7 @@ public class NewspaperManager : MonoBehaviour
 
     private bool isCurrentSelectionCorrect = false;
     private bool hasSelected = false;
-    private bool isGameCompleted = false;
+    public bool isGameCompleted = false;
     private bool isPublishing = false;
 
     private Button publishButton;

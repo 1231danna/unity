@@ -11,6 +11,7 @@ public class ObjectClicker : MonoBehaviour
     [Header("视角切换目标物体")]
     public GameObject notebookObject;     // 在 Inspector 面板把笔记本模型拖进来
     public GameObject workingboardObject; // 在 Inspector 面板把桌子模型拖进来
+    public TaskTracker taskTracker;
 
     void Start()
     {
@@ -36,7 +37,13 @@ public class ObjectClicker : MonoBehaviour
                 // 如果点到了笔记本物体
                 if (hitObj == notebookObject)
                 {
-                    camScript.targetAnchor = camScript.notebookAnchor;
+                    // 问管家：活儿全干完了吗？
+                    if (taskTracker != null && !taskTracker.IsEverythingDone())
+                    {
+                        Debug.Log("任务未完成，不能进入笔记本。");
+                        return; // 拦截，不切换视角
+                    }
+                        camScript.targetAnchor = camScript.notebookAnchor;
                     camScript.UpdateUIButtonVisibility();
                     return; // 切换了镜头就结束本次 Update，不往下执行
                 }
