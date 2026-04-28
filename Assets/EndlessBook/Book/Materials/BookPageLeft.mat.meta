@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 918292bb1e88ab642b8d0bce4cd241c6
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 134213
+  packageName: EndlessBook
+  packageVersion: 1.14.0
+  assetPath: Assets/EndlessBook/Book/Materials/BookPageLeft.mat
+  uploadId: 808958

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 23c824a64c4a9954587906900182b838
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 134213
+  packageName: EndlessBook
+  packageVersion: 1.14.0
+  assetPath: Assets/EndlessBook/Book/Resources/Page.prefab
+  uploadId: 808958
