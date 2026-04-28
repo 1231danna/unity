@@ -10,11 +10,13 @@ public class NotebookTurn : MonoBehaviour
     [System.Serializable]
     public class StepUI
     {
-        public GameObject rootGroup;      // 这一步UI的父物体
-        public TextMeshProUGUI textMsg;   // 显示的文本内容
-        public Button nextBtn;            // “下一步”跳转按钮
+        public GameObject rootGroup;      // UI 父物体
+        public Button startBtn;           // “阅读”按钮
+        public TextMeshProUGUI textMsg;   // 文本内容
+        public Button nextBtn;            // “下一步/跳转”按钮
 
-        [Tooltip("直接把场景文件拖到这里")]
+        [Header("场景跳转设置")]
+        public bool isSceneJump;
         public Object sceneToLoad;
     }
 
@@ -22,97 +24,164 @@ public class NotebookTurn : MonoBehaviour
     public SmoothInteractionCamera camScript;
     public Transform notebookAnchor;
 
-    [Header("冲刺特效设置")]
-    public CanvasGroup transitionOverlay; // 拖入那个黑屏Image
-    public float dashMoveSpeed = 40f;     // 冲刺速度（建议加大，更有撞击感）
+    [Header("冲刺转场设置")]
+    public CanvasGroup transitionOverlay;
+    public float dashMoveSpeed = 40f;
     public float dashRotateSpeed = 30f;
-    public float timeToBlack = 0.5f;      // 0.5秒撞完并黑屏
+    public float timeToBlack = 0.5f;
 
     [Header("交互步骤配置")]
     public List<StepUI> steps;
 
     private int currentIdx = 0;
+    private bool isTyping = false;
 
     void Start()
     {
-        // 初始确保黑屏是隐藏且透明的
+        // 1. 初始化黑屏状态
         if (transitionOverlay != null)
         {
             transitionOverlay.alpha = 0f;
             transitionOverlay.gameObject.SetActive(false);
         }
 
-        // 初始化UI显示状态与按钮监听
+        // 2. 初始化所有步骤的 UI 和按钮
         for (int i = 0; i < steps.Count; i++)
         {
             int index = i;
             StepUI s = steps[index];
 
-            if (s.rootGroup != null) s.rootGroup.SetActive(index == 0); // 默认只显示第一步
+            // 确保第一组显示，其他隐藏
+            if (s.rootGroup != null) s.rootGroup.SetActive(index == 0);
 
+            // 初始隐藏文本和 Next 按钮（等待点击阅读）
+            if (s.textMsg != null) s.textMsg.gameObject.SetActive(false);
+            if (s.nextBtn != null) s.nextBtn.gameObject.SetActive(false);
+
+            // 绑定阅读按钮
+            if (s.startBtn != null)
+            {
+                s.startBtn.gameObject.SetActive(true);
+                s.startBtn.onClick.RemoveAllListeners(); // 防止重复绑定
+                s.startBtn.onClick.AddListener(() => StartCoroutine(TypeEffect(s)));
+            }
+
+            // 绑定 Next 按钮
             if (s.nextBtn != null)
             {
-                s.nextBtn.onClick.AddListener(() => StartCoroutine(TransitionAndLoad(s.sceneToLoad)));
+                s.nextBtn.onClick.RemoveAllListeners();
+                if (s.isSceneJump)
+                {
+                    // 如果是跳转场景，绑定冲刺协程
+                    s.nextBtn.onClick.AddListener(() => {
+                        Debug.Log("点击了跳转按钮");
+                        StartCoroutine(TransitionAndLoad(s.sceneToLoad));
+                    });
+                }
+                else
+                {
+                    // 如果不是，切换到下一组 UI
+                    s.nextBtn.onClick.AddListener(NextStepAction);
+                }
             }
         }
     }
 
-    // --- 核心转场逻辑：急速冲向 AnchorTurn 并黑屏 ---
-    IEnumerator TransitionAndLoad(Object sceneObj)
+    // 文字打字机效果
+    IEnumerator TypeEffect(StepUI s)
     {
-        if (sceneObj == null)
+        if (isTyping) yield break;
+        isTyping = true;
+
+        s.startBtn.gameObject.SetActive(false);
+        s.textMsg.gameObject.SetActive(true);
+        s.textMsg.maxVisibleCharacters = 0;
+
+        string fullText = s.textMsg.text;
+        int totalCharacters = fullText.Length;
+        int currentVisible = 0;
+        float timer = 0f;
+        float interval = 0.05f;
+
+        while (currentVisible < totalCharacters)
         {
-            Debug.LogError("没有分配场景！");
-            yield break;
-        }
-
-        // 1. 隐藏当前UI，防止连点
-        if (steps[currentIdx].rootGroup != null)
-            steps[currentIdx].rootGroup.SetActive(false);
-
-        // 2. 设置相机冲刺目标为 AnchorTurn
-        if (camScript != null)
-        {
-            // 在 notebookAnchor 下寻找你创建的那个“深处”锚点 AnchorTurn
-            Transform dashTarget = notebookAnchor.Find("AnchorTurn");
-
-            if (dashTarget != null)
+            if (Input.GetMouseButtonDown(0)) // 左键跳过
             {
-                camScript.SetCameraFrozen(false); // 解除相机锁定
-                camScript.moveSpeed = dashMoveSpeed; // 覆盖原始速度
-                camScript.rotateSpeed = dashRotateSpeed;
-                camScript.targetAnchor = dashTarget; // 冲向深处的点
-                Debug.Log("冲刺开始：目标 AnchorTurn");
+                s.textMsg.maxVisibleCharacters = totalCharacters;
+                break;
             }
-            else
+            timer += Time.deltaTime;
+            if (timer >= interval)
             {
-                Debug.LogWarning("未在 notebookAnchor 下找到名为 AnchorTurn 的子物体！");
-                // 如果没找到，退而求其次冲向笔记本锚点
-                camScript.targetAnchor = notebookAnchor;
-            }
-        }
-
-        // 3. 开启黑屏渐变
-        if (transitionOverlay != null)
-        {
-            transitionOverlay.gameObject.SetActive(true);
-            transitionOverlay.alpha = 0f;
-        }
-
-        float elapsed = 0;
-        while (elapsed < timeToBlack)
-        {
-            elapsed += Time.deltaTime;
-            if (transitionOverlay != null)
-            {
-                transitionOverlay.alpha = Mathf.Clamp01(elapsed / timeToBlack);
+                timer = 0f;
+                currentVisible++;
+                s.textMsg.maxVisibleCharacters = currentVisible;
             }
             yield return null;
         }
 
-        if (transitionOverlay != null) transitionOverlay.alpha = 1f;
+        s.nextBtn.gameObject.SetActive(true);
+        isTyping = false;
+    }
 
-        // 4. 跳转场景
+    // 切换到下一组 UI
+    void NextStepAction()
+    {
+        if (currentIdx < steps.Count)
+            steps[currentIdx].rootGroup.SetActive(false);
+
+        currentIdx++;
+
+        if (currentIdx < steps.Count)
+        {
+            var s = steps[currentIdx];
+            s.rootGroup.SetActive(true);
+            s.startBtn.gameObject.SetActive(true);
+            s.textMsg.gameObject.SetActive(false);
+            s.nextBtn.gameObject.SetActive(false);
+        }
+    }
+
+    // 急速冲刺 + 黑屏转场
+    IEnumerator TransitionAndLoad(Object sceneObj)
+    {
+        if (sceneObj == null)
+        {
+            Debug.LogError("未在 Steps 中分配跳转场景！");
+            yield break;
+        }
+
+        Debug.Log("开始冲刺转场...");
+
+        // 1. 隐藏当前步骤 UI
+        if (currentIdx < steps.Count)
+            steps[currentIdx].rootGroup.SetActive(false);
+
+        // 2. 相机加速并指向 AnchorTurn
+        if (camScript != null)
+        {
+            Transform dashTarget = notebookAnchor.Find("AnchorTurn");
+            camScript.SetCameraFrozen(false);
+            camScript.moveSpeed = dashMoveSpeed;
+            camScript.rotateSpeed = dashRotateSpeed;
+            camScript.targetAnchor = (dashTarget != null) ? dashTarget : notebookAnchor;
+        }
+
+        // 3. 黑屏淡入
+        if (transitionOverlay != null)
+        {
+            transitionOverlay.gameObject.SetActive(true);
+            float elapsed = 0;
+            while (elapsed < timeToBlack)
+            {
+                elapsed += Time.deltaTime;
+                transitionOverlay.alpha = Mathf.Clamp01(elapsed / timeToBlack);
+                yield return null;
+            }
+            transitionOverlay.alpha = 1f;
+        }
+
+        // 4. 加载场景
         yield return new WaitForSeconds(0.1f);
         SceneManager.LoadScene(sceneObj.name);
     }
