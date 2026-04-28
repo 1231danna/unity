@@ -7,6 +7,7 @@ public class ObjectClicker : MonoBehaviour
     private SmoothInteractionCamera camScript;
     private const string VideoTriggerSpriteName = "moive";
     private const string TestVideoFileName = "test-video.mp4";
+    private const bool EnableVideoOverlayPlayback = false;
 
     [Header("视角切换目标物体")]
     public GameObject notebookObject;     // 在 Inspector 面板把笔记本模型拖进来
@@ -58,7 +59,11 @@ public class ObjectClicker : MonoBehaviour
                     {
                         if (item.highResSprite.name == VideoTriggerSpriteName)
                         {
-                            VideoOverlayPlayer.Play(TestVideoFileName, camScript);
+                            if (EnableVideoOverlayPlayback)
+                            {
+                                VideoOverlayPlayer.Play(TestVideoFileName, camScript);
+                            }
+
                             return;
                         }
 
