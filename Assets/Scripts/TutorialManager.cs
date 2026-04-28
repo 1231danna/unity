@@ -16,14 +16,19 @@ public class TutorialManager : MonoBehaviour
 
     void Start()
     {
-        if (tutorialPanel != null) { tutorialPanel.alpha = 0; tutorialPanel.blocksRaycasts = false; }
+        HideTutorial();
     }
 
     public void ShowTutorial()
     {
-        if (tutorialPanel != null) StartCoroutine(FadeInTutorial());
-        if (tutorialTargets.Length > 0 && tutorialTargets[0] != null) 
-            tutorialTargets[0].SetTutorialTarget(true);
+        if (tutorialPanel != null)
+        {
+            tutorialPanel.gameObject.SetActive(true);
+            StartCoroutine(FadeInTutorial());
+        }
+        
+        // 激活列表里的第一个目标
+        if (tutorialTargets.Length > 0) tutorialTargets[0].SetTutorialTarget(true);
     }
 
     public void ShowDetailedInstruction(string content)
@@ -67,6 +72,19 @@ public class TutorialManager : MonoBehaviour
 
     private void HideTutorial()
     {
-        if (tutorialPanel != null) { tutorialPanel.alpha = 0; tutorialPanel.blocksRaycasts = false; }
+        if (tutorialPanel != null)
+        {
+            tutorialPanel.alpha = 0;
+            tutorialPanel.blocksRaycasts = false;
+            tutorialPanel.gameObject.SetActive(false);
+        }
+
+        foreach (HoverOutline target in tutorialTargets)
+        {
+            if (target != null)
+            {
+                target.SetTutorialTarget(false);
+            }
+        }
     }
 }
