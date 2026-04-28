@@ -56,7 +56,6 @@ public class NewspaperManager : MonoBehaviour
         CacheSpeakerPortraitReference();
         CachePublishButtonReference();
         ConfigureSpeakerPortrait();
-        DisableDialogueBackground();
     }
 
     void Start()
@@ -87,18 +86,10 @@ public class NewspaperManager : MonoBehaviour
         if (camScript != null)
         {
             camScript.SetCameraFrozen(true);
-            if (camScript.backButton != null) camScript.backButton.SetActive(false);
             if (camScript.exitButton != null) camScript.exitButton.SetActive(false);
         }
 
-        TutorialManager tutorialManager = Object.FindFirstObjectByType<TutorialManager>();
-        if (tutorialManager != null)
-        {
-            tutorialManager.CloseTutorial();
-        }
-
         ConfigureSpeakerPortrait();
-        DisableDialogueBackground();
         ResetPublishButtonVisual();
         gameObject.SetActive(true);
 
@@ -122,7 +113,6 @@ public class NewspaperManager : MonoBehaviour
         if (camScript != null)
         {
             camScript.SetCameraFrozen(false);
-            if (camScript.backButton != null) camScript.backButton.SetActive(true);
             if (camScript.exitButton != null) camScript.exitButton.SetActive(true);
         }
 
@@ -140,7 +130,6 @@ public class NewspaperManager : MonoBehaviour
     private void SetDialogueVisible(bool isVisible)
     {
         ConfigureSpeakerPortrait();
-        DisableDialogueBackground();
 
         if (dialogueBox != null) dialogueBox.SetActive(isVisible);
         if (speakerPortrait != null)
@@ -153,21 +142,6 @@ public class NewspaperManager : MonoBehaviour
             {
                 portraitImage.enabled = isVisible;
             }
-        }
-    }
-
-    private void DisableDialogueBackground()
-    {
-        if (dialogueBox == null)
-        {
-            return;
-        }
-
-        Image dialogueImage = dialogueBox.GetComponent<Image>();
-        if (dialogueImage != null)
-        {
-            dialogueImage.enabled = false;
-            dialogueImage.raycastTarget = false;
         }
     }
 
