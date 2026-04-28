@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 public class SmoothInteractionCamera : MonoBehaviour
 {
@@ -32,6 +31,9 @@ public class SmoothInteractionCamera : MonoBehaviour
     private float breatheTimer;
     private float currentBreatheAmplitude;
     private bool isFrozen = true;
+    
+    // 新增：防止重复触发第二段对话
+    private bool hasTriggeredWorkingboardTutorial = false; 
 
     void Start()
     {
@@ -45,30 +47,24 @@ public class SmoothInteractionCamera : MonoBehaviour
 
     void Update()
     {
-        // --- 【新增逻辑】：点击交互检测 ---
         if (Input.GetMouseButtonDown(0) && !isFrozen)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
-                if (tm != null)
+                if (hit.collider.gameObject.name == "Workingboard")
                 {
-                    // 1. 点击工作板触发第一段话
-                    if (hit.collider.gameObject.name == "Workingboard")
+                    // 触发第二段对话 (仅触发一次)
+                    if (!hasTriggeredWorkingboardTutorial)
                     {
-                        tm.ShowDetailedInstruction("Notes from the front. Might be worth checking before I write.");
-                    }
-                    // 2. 点击照片触发第二段话
-                    else if (hit.collider.gameObject.name == "model_0.004")
-                    {
-                        tm.ShowDetailedInstruction("That should be enough for the report. Now, the headline.");
+                        TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
+                        tm?.ShowNextStep();
+                        hasTriggeredWorkingboardTutorial = true;
                     }
                 }
             }
         }
 
-        // --- 【原有逻辑】：相机呼吸与鼠标偏移 ---
         if (targetAnchor == initialAnchor && !isFrozen)
         {
             Vector2 mousePos = new Vector2(Input.mousePosition.x / Screen.width, Input.mousePosition.y / Screen.height);
@@ -103,11 +99,12 @@ public class SmoothInteractionCamera : MonoBehaviour
         float breatheOffset = Mathf.Sin(breatheTimer) * currentBreatheAmplitude;
         Vector3 finalPos = targetAnchor.position + (targetAnchor.up * breatheOffset);
         Quaternion finalRot = (targetAnchor == initialAnchor) ? targetAnchor.rotation * Quaternion.Euler(-currentMouseOffset.y, currentMouseOffset.x, 0) : targetAnchor.rotation;
+        
         transform.position = Vector3.Lerp(transform.position, finalPos, Time.deltaTime * moveSpeed);
         transform.rotation = Quaternion.Slerp(transform.rotation, finalRot, Time.deltaTime * rotateSpeed);
         UpdateUIButtonVisibility();
     }
 
     public void BackToInitialView() { targetAnchor = initialAnchor; SetCameraFrozen(false); }
-    public void ExitGame() { Application.Quit(); }
+    public void ExitGame() => Application.Quit();
 }
