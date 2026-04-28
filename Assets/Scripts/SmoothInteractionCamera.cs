@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Collections;
 
 public class SmoothInteractionCamera : MonoBehaviour
 {
@@ -16,11 +17,9 @@ public class SmoothInteractionCamera : MonoBehaviour
     public float moveSpeed = 3f;
     public float rotateSpeed = 3f;
 
-    [Header("初始视角特有的鼠标摆动")]
+    [Header("呼吸与摆动设置")]
     public float mouseOffsetRange = 15f;
     public float mouseSmoothTime = 2f;
-
-    [Header("呼吸感设置")]
     public float defaultBreatheAmplitude = 0.05f;
     public float focusedBreatheAmplitude = 0.01f;
     public float breatheSpeed = 0.8f;
@@ -45,7 +44,7 @@ public class SmoothInteractionCamera : MonoBehaviour
 
     void Update()
     {
-        // --- 【新增逻辑】：点击交互检测 ---
+        // 核心交互：点击检测
         if (Input.GetMouseButtonDown(0) && !isFrozen)
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -54,21 +53,31 @@ public class SmoothInteractionCamera : MonoBehaviour
                 TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
                 if (tm != null)
                 {
-                    // 1. 点击工作板触发第一段话
                     if (hit.collider.gameObject.name == "Workingboard")
                     {
-                        tm.ShowDetailedInstruction("Notes from the front. Might be worth checking before I write.");
+                        tm.ShowDetailedInstruction("这里记录了当年的档案，看起来有些线索被涂改了...");
                     }
-                    // 2. 点击照片触发第二段话
                     else if (hit.collider.gameObject.name == "model_0.004")
                     {
-                        tm.ShowDetailedInstruction("That should be enough for the report. Now, the headline.");
+                        // 使用协程延迟弹出，防止点击瞬间界面过于突兀
+                        StartCoroutine(DelayedShow(tm, "这就是那张关键的照片，人影清晰可见。"));
                     }
                 }
             }
         }
 
-        // --- 【原有逻辑】：相机呼吸与鼠标偏移 ---
+        // 呼吸与相机逻辑保持不变
+        HandleCameraMovement();
+    }
+
+    private IEnumerator DelayedShow(TutorialManager tm, string text)
+    {
+        yield return new WaitForSeconds(0.3f); 
+        tm.ShowDetailedInstruction(text);
+    }
+
+    private void HandleCameraMovement()
+    {
         if (targetAnchor == initialAnchor && !isFrozen)
         {
             Vector2 mousePos = new Vector2(Input.mousePosition.x / Screen.width, Input.mousePosition.y / Screen.height);
