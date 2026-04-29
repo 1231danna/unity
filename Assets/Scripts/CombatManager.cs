@@ -44,26 +44,58 @@ public class CombatManager : MonoBehaviour
         return Mathf.Max(0, finalATK - finalDefense);
     }
 
-    public void StartCombat(Player attacker, Player defender)
+   public void StartCombat(Player attacker, Player defender)
     {
+        // 开启战斗序列的协程
+        StartCoroutine(CombatSequence(attacker, defender));
+    }
+
+    // 新增：战斗时间线协程
+    private IEnumerator CombatSequence(Player attacker, Player defender)
+    {
+        // === 1. 攻击者发起攻击 ===
+        attacker.PlayAttackAnimation(defender.Tile);
+        
+        // 等待动画播放到“挥刀/开枪”的受击点（假设动画长度或前摇是0.5秒）
+        // 这个数值你可以根据实际美术素材的节奏自己调
+        yield return new WaitForSeconds(0.5f); 
+
+        // 结算伤害并扣血
         ExecuteAttack(attacker, defender);
 
-        if(!defender.IsDead && !defender.isCover)
+        // 等待一下，让玩家看清伤害数字
+        yield return new WaitForSeconds(0.3f);
+
+        //  防守者反击逻辑 
+        if (!defender.IsDead && !defender.isCover)
         {
             int distance = Mathf.Abs(attacker.EndTile.X - defender.Tile.X) + Mathf.Abs(attacker.EndTile.Y - defender.Tile.Y);
             if (distance <= defender.AttackRange)
             {
+                // 防守者播放反击动画
+                defender.PlayAttackAnimation(attacker.Tile);
+                
+                // 同样等待反击动画播到受击点
+                yield return new WaitForSeconds(0.5f);
+                
+                // 结算反击伤害
                 ExecuteAttack(defender, attacker);
+                
+                // 等待伤害表现
+                yield return new WaitForSeconds(0.3f);
             }
             else
             {
                 Debug.Log($"{defender.name} 无法反击，因为 {attacker.name} 在攻击范围外");
             }
-
         }
 
+        // === 3. 战斗结束 ===
+        // 给最后一点缓冲时间，然后让攻击者进入待机（变灰）
+        yield return new WaitForSeconds(0.2f);
         attacker.StandBy();
     }
+
 
     public void ExecuteAttack(Player attacker, Player defender)
     {

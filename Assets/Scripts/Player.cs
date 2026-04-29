@@ -331,4 +331,11 @@ public class Player : MonoBehaviour
         animator.SetInteger("y", facing.y);
         animator.SetBool("isActive", true);
     }
+
+    // attack
+    public void PlayAttackAnimation(LogicTile targetTile)
+    {
+        ForceFaceTarget(targetTile);
+        animator.SetTrigger("Attack"); 
+    }
 }
