@@ -35,7 +35,7 @@ public class SmoothInteractionCamera : MonoBehaviour
 
     void Start()
     {
-        if (initialAnchor != null) targetAnchor = initialAnchor;
+        if (targetAnchor == null && initialAnchor != null) targetAnchor = initialAnchor;
         currentBreatheAmplitude = defaultBreatheAmplitude;
         UpdateUIButtonVisibility();
         SetCameraFrozen(true);
@@ -83,6 +83,15 @@ public class SmoothInteractionCamera : MonoBehaviour
     void LateUpdate()
     {
         if (targetAnchor == null) return;
+
+        if (isFrozen)
+        {
+            currentMouseOffset = Vector2.zero;
+            currentBreatheAmplitude = 0f;
+            transform.SetPositionAndRotation(targetAnchor.position, targetAnchor.rotation);
+            UpdateUIButtonVisibility();
+            return;
+        }
 
         float breatheOffset = Mathf.Sin(breatheTimer) * currentBreatheAmplitude;
         Vector3 finalPos = targetAnchor.position + (targetAnchor.up * breatheOffset);
