@@ -12,8 +12,8 @@ EditorBuildSettings:
     path: Assets/Scenes/Battle1.unity
     guid: a2f832c536a6120478caac797b67875d
   - enabled: 1
-    path: Assets/Scenes/DarkRoom1.unity
-    guid: 1e110359e6b4fc84bb6b52df089a248f
+    path: Assets/Scenes/DarkRoom2.unity
+    guid: 1faad7b4ec844be48b864ebee6dfc72a
   - enabled: 1
     path: Assets/Scenes/Battle2.unity
     guid: 05c61fd50c3dd2649a06a9abbd1d4d2f

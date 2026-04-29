@@ -22,8 +22,6 @@ public class ObjectClicker : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            if (camScript != null && camScript.isShowingDocument) return;
-
             // 1. 如果点在 UI 上（比如点按钮），就不触发场景物体的射线检测
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 

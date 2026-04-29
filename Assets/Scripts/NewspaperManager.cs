@@ -1,14 +1,10 @@
 using TMPro;
 using System.Collections;
-using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class NewspaperManager : MonoBehaviour
 {
-    private const int BodyLineLength = 22;
-    private const int BodyMaxLines = 3;
-
     [Header("UI References")]
     public TMP_Text titleSlot;
     public GameObject dialogueBox;
@@ -72,59 +68,10 @@ public class NewspaperManager : MonoBehaviour
     {
         if (isGameCompleted || option == null) return;
 
-        titleSlot.text = FormatNewspaperTitle(option.titleText);
+        titleSlot.text = option.titleText;
         isCurrentSelectionCorrect = option.isCorrect;
         hasSelected = true;
         SetDialogueVisible(false);
-    }
-
-    private string FormatNewspaperTitle(string rawTitle)
-    {
-        int headlineEnd = rawTitle.IndexOf('!', rawTitle.IndexOf('!') + 1);
-        if (headlineEnd < 0) return rawTitle;
-
-        string headline = FormatHeadline(rawTitle[..(headlineEnd + 1)]);
-        string body = rawTitle[(headlineEnd + 1)..].Trim();
-        return
-            $"<align=\"center\"><line-height=82%><b>{headline}</b></line-height></align>\n" +
-            $"<size=10%>\n</size><align=\"left\"><line-height=78%><size=38%>{FormatBody(body)}</size></line-height></align>";
-    }
-
-    private string FormatHeadline(string rawHeadline)
-    {
-        string headline = rawHeadline.Trim();
-        int kickerEnd = headline.IndexOf('!');
-        if (kickerEnd < 0 || kickerEnd >= headline.Length - 1)
-        {
-            return $"<size=92%>{headline.ToUpperInvariant()}</size>";
-        }
-
-        string kicker = headline[..(kickerEnd + 1)].Trim().ToUpperInvariant();
-        string mainHeadline = BreakBeforeLastWord(headline[(kickerEnd + 1)..].Trim().ToUpperInvariant());
-        return $"<size=76%>{kicker}</size>\n<size=96%>{mainHeadline}</size>";
-    }
-
-    private string BreakBeforeLastWord(string text)
-    {
-        int lastSpaceIndex = text.LastIndexOf(' ');
-        if (lastSpaceIndex < 0) return text;
-
-        return text[..lastSpaceIndex] + "\n" + text[(lastSpaceIndex + 1)..];
-    }
-
-    private string FormatBody(string body)
-    {
-        string compactBody = body.Replace(" ", "").Trim();
-        StringBuilder builder = new();
-        for (int lineIndex = 0, index = 0; lineIndex < BodyMaxLines && index < compactBody.Length; lineIndex++, index += BodyLineLength)
-        {
-            if (builder.Length > 0) builder.Append('\n');
-
-            int lineLength = Mathf.Min(BodyLineLength, compactBody.Length - index);
-            builder.Append(compactBody, index, lineLength);
-        }
-
-        return builder.ToString();
     }
 
     public void OnPublish()
