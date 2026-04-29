@@ -43,6 +43,9 @@ public class NewspaperManager : MonoBehaviour
     private bool hasSelected = false;
     public bool isGameCompleted = false;
     private bool isPublishing = false;
+    
+    // 新增：防止重复触发 Notebook 引导的开关
+    private bool hasTriggeredNotebookTutorial = false; 
 
     private Button publishButton;
     private RectTransform publishButtonRect;
@@ -124,7 +127,27 @@ public class NewspaperManager : MonoBehaviour
             SetDialogueVisible(false);
         }
 
+        // --- 核心新增逻辑：只有在成功 Publish 后关闭，才会触发下一步引导 ---
+        if (isGameCompleted && !hasTriggeredNotebookTutorial)
+        {
+            TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
+            if (tm != null)
+            {
+                // 把延迟倒计时的任务交给不会被隐藏的 TutorialManager 去做
+                tm.StartCoroutine(TriggerDelayedNotebookTutorial(tm));
+            }
+            hasTriggeredNotebookTutorial = true; // 标记为已触发
+        }
+
+        // 最后隐藏报纸面板
         gameObject.SetActive(false);
+    }
+
+    // 新增：延迟 0.5 秒后弹出新对话框
+    private IEnumerator TriggerDelayedNotebookTutorial(TutorialManager tm)
+    {
+        yield return new WaitForSeconds(0.5f);
+        tm.ShowNextStep();
     }
 
     private void SetDialogueVisible(bool isVisible)
