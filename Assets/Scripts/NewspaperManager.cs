@@ -43,9 +43,11 @@ public class NewspaperManager : MonoBehaviour
     private bool hasSelected = false;
     public bool isGameCompleted = false;
     private bool isPublishing = false;
-    
-    // 新增：防止重复触发 Notebook 引导的开关
-    private bool hasTriggeredNotebookTutorial = false; 
+
+    // 用于记录当前选中选项对应的 NPC 点评文本
+    private string currentFeedbackText = "";
+
+    private bool hasTriggeredNotebookTutorial = false;
 
     private Button publishButton;
     private RectTransform publishButtonRect;
@@ -67,12 +69,18 @@ public class NewspaperManager : MonoBehaviour
         SetDialogueVisible(false);
     }
 
+    // 当玩家点击选项按钮时触发
     public void SetCurrentSelection(TitleOption option)
     {
         if (isGameCompleted || option == null) return;
 
+        // 更新报纸上的标题文字
         titleSlot.text = option.titleText;
+        // 记录该选项是否正确
         isCurrentSelectionCorrect = option.isCorrect;
+        // 记录该选项对应的 NPC 反馈台词
+        currentFeedbackText = option.feedbackText;
+
         hasSelected = true;
         SetDialogueVisible(false);
     }
@@ -124,26 +132,23 @@ public class NewspaperManager : MonoBehaviour
             hasSelected = false;
             isCurrentSelectionCorrect = false;
             titleSlot.text = "";
+            currentFeedbackText = "";
             SetDialogueVisible(false);
         }
 
-        // --- 核心新增逻辑：只有在成功 Publish 后关闭，才会触发下一步引导 ---
         if (isGameCompleted && !hasTriggeredNotebookTutorial)
         {
             TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
             if (tm != null)
             {
-                // 把延迟倒计时的任务交给不会被隐藏的 TutorialManager 去做
                 tm.StartCoroutine(TriggerDelayedNotebookTutorial(tm));
             }
-            hasTriggeredNotebookTutorial = true; // 标记为已触发
+            hasTriggeredNotebookTutorial = true;
         }
 
-        // 最后隐藏报纸面板
         gameObject.SetActive(false);
     }
 
-    // 新增：延迟 0.5 秒后弹出新对话框
     private IEnumerator TriggerDelayedNotebookTutorial(TutorialManager tm)
     {
         yield return new WaitForSeconds(0.5f);
@@ -170,44 +175,26 @@ public class NewspaperManager : MonoBehaviour
 
     private void CacheSpeakerPortraitReference()
     {
-        if (speakerPortrait != null)
-        {
-            return;
-        }
+        if (speakerPortrait != null) return;
 
         Transform portraitTransform = transform.Find("Dialogue/LeaderPortrait");
-        if (portraitTransform == null)
-        {
-            portraitTransform = transform.Find("LeaderPortrait");
-        }
+        if (portraitTransform == null) portraitTransform = transform.Find("LeaderPortrait");
 
-        if (portraitTransform != null)
-        {
-            speakerPortrait = portraitTransform.gameObject;
-        }
+        if (portraitTransform != null) speakerPortrait = portraitTransform.gameObject;
     }
 
     private void CachePublishButtonReference()
     {
-        if (publishButton != null && publishButtonRect != null)
-        {
-            return;
-        }
+        if (publishButton != null && publishButtonRect != null) return;
 
         Transform publishTransform = transform.Find("NewspaperContent/ButtonPublish");
-        if (publishTransform == null)
-        {
-            return;
-        }
+        if (publishTransform == null) return;
 
         publishButton = publishTransform.GetComponent<Button>();
         publishButtonRect = publishTransform as RectTransform;
         publishButtonImage = publishTransform.GetComponent<Image>();
 
-        if (publishButtonRect == null)
-        {
-            return;
-        }
+        if (publishButtonRect == null) return;
 
         publishButtonBasePosition = publishButtonRect.anchoredPosition;
         publishButtonBaseScale = publishButtonRect.localScale;
@@ -218,22 +205,13 @@ public class NewspaperManager : MonoBehaviour
     {
         CacheSpeakerPortraitReference();
 
-        if (dialogueBox == null || speakerPortrait == null)
-        {
-            return;
-        }
+        if (dialogueBox == null || speakerPortrait == null) return;
 
         RectTransform dialogueRect = dialogueBox.GetComponent<RectTransform>();
         RectTransform portraitRect = speakerPortrait.GetComponent<RectTransform>();
-        if (dialogueRect == null || portraitRect == null)
-        {
-            return;
-        }
+        if (dialogueRect == null || portraitRect == null) return;
 
-        if (portraitRect.parent != dialogueRect)
-        {
-            portraitRect.SetParent(dialogueRect, false);
-        }
+        if (portraitRect.parent != dialogueRect) portraitRect.SetParent(dialogueRect, false);
 
         portraitRect.anchorMin = new Vector2(0.5f, 0.5f);
         portraitRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -248,10 +226,7 @@ public class NewspaperManager : MonoBehaviour
         isPublishing = true;
         CachePublishButtonReference();
 
-        if (publishButton != null)
-        {
-            publishButton.interactable = false;
-        }
+        if (publishButton != null) publishButton.interactable = false;
 
         if (publishButtonRect == null)
         {
@@ -266,63 +241,23 @@ public class NewspaperManager : MonoBehaviour
         Quaternion liftRotation = Quaternion.Euler(0f, 0f, publishLiftRotation);
         Quaternion impactRotation = Quaternion.Euler(0f, 0f, publishImpactRotation);
 
-        yield return AnimatePublishButton(
-            publishButtonBasePosition,
-            liftPosition,
-            publishButtonBaseScale,
-            publishStartScale,
-            publishButtonBaseRotation,
-            liftRotation,
-            publishLiftDuration,
-            false);
-
-        yield return AnimatePublishButton(
-            liftPosition,
-            publishButtonBasePosition + publishImpactOffset,
-            publishStartScale,
-            publishImpactScale,
-            liftRotation,
-            impactRotation,
-            publishImpactDuration,
-            true);
+        yield return AnimatePublishButton(publishButtonBasePosition, liftPosition, publishButtonBaseScale, publishStartScale, publishButtonBaseRotation, liftRotation, publishLiftDuration, false);
+        yield return AnimatePublishButton(liftPosition, publishButtonBasePosition + publishImpactOffset, publishStartScale, publishImpactScale, liftRotation, impactRotation, publishImpactDuration, true);
 
         ApplyPublishResult();
 
-        yield return AnimatePublishButton(
-            publishButtonBasePosition + publishImpactOffset,
-            publishButtonBasePosition,
-            publishImpactScale,
-            publishButtonBaseScale,
-            impactRotation,
-            publishButtonBaseRotation,
-            publishRecoverDuration,
-            false);
+        yield return AnimatePublishButton(publishButtonBasePosition + publishImpactOffset, publishButtonBasePosition, publishImpactScale, publishButtonBaseScale, impactRotation, publishButtonBaseRotation, publishRecoverDuration, false);
 
         ResetPublishButtonVisual();
-
-        if (publishButton != null)
-        {
-            publishButton.interactable = true;
-        }
-
+        if (publishButton != null) publishButton.interactable = true;
         isPublishing = false;
     }
 
-    private IEnumerator AnimatePublishButton(
-        Vector2 fromPosition,
-        Vector2 toPosition,
-        Vector3 fromScale,
-        Vector3 toScale,
-        Quaternion fromRotation,
-        Quaternion toRotation,
-        float duration,
-        bool darkenOnImpact)
+    private IEnumerator AnimatePublishButton(Vector2 fromPos, Vector2 toPos, Vector3 fromScale, Vector3 toScale, Quaternion fromRot, Quaternion toRot, float duration, bool darkenOnImpact)
     {
         float elapsed = 0f;
         Color baseColor = publishButtonImage != null ? publishButtonImage.color : Color.white;
-        Color targetColor = darkenOnImpact
-            ? new Color(0.82f, 0.74f, 0.68f, baseColor.a)
-            : Color.white;
+        Color targetColor = darkenOnImpact ? new Color(0.82f, 0.74f, 0.68f, baseColor.a) : Color.white;
 
         while (elapsed < duration)
         {
@@ -330,41 +265,39 @@ public class NewspaperManager : MonoBehaviour
             float t = Mathf.Clamp01(elapsed / duration);
             float easedT = Mathf.SmoothStep(0f, 1f, t);
 
-            publishButtonRect.anchoredPosition = Vector2.LerpUnclamped(fromPosition, toPosition, easedT);
+            publishButtonRect.anchoredPosition = Vector2.LerpUnclamped(fromPos, toPos, easedT);
             publishButtonRect.localScale = Vector3.LerpUnclamped(fromScale, toScale, easedT);
-            publishButtonRect.localRotation = Quaternion.LerpUnclamped(fromRotation, toRotation, easedT);
+            publishButtonRect.localRotation = Quaternion.LerpUnclamped(fromRot, toRot, easedT);
 
-            if (publishButtonImage != null)
-            {
-                publishButtonImage.color = Color.LerpUnclamped(baseColor, targetColor, easedT);
-            }
-
+            if (publishButtonImage != null) publishButtonImage.color = Color.LerpUnclamped(baseColor, targetColor, easedT);
             yield return null;
         }
 
-        publishButtonRect.anchoredPosition = toPosition;
+        publishButtonRect.anchoredPosition = toPos;
         publishButtonRect.localScale = toScale;
-        publishButtonRect.localRotation = toRotation;
-
-        if (publishButtonImage != null)
-        {
-            publishButtonImage.color = targetColor;
-        }
+        publishButtonRect.localRotation = toRot;
+        if (publishButtonImage != null) publishButtonImage.color = targetColor;
     }
 
     private void ApplyPublishResult()
     {
         SetDialogueVisible(true);
 
+        // 默认保底文案（以防万一你在面板里没填）
+        string defaultSuccess = "That should read well.";
+        string defaultFail = "Hmm… maybe something a bit more uplifting?";
+
         if (isCurrentSelectionCorrect)
         {
-            dialogueText.text = "Excellent! You solved it.";
+            // 显示面板中填写的自定义点评，没填则用保底文案
+            dialogueText.text = string.IsNullOrEmpty(currentFeedbackText) ? defaultSuccess : currentFeedbackText;
             if (closeButton != null) closeButton.interactable = true;
             isGameCompleted = true;
         }
         else
         {
-            dialogueText.text = "Wrong! You are trapped here!";
+            // 同上，处理错误选项的评价
+            dialogueText.text = string.IsNullOrEmpty(currentFeedbackText) ? defaultFail : currentFeedbackText;
             if (closeButton != null) closeButton.interactable = false;
         }
     }
@@ -372,19 +305,11 @@ public class NewspaperManager : MonoBehaviour
     private void ResetPublishButtonVisual()
     {
         CachePublishButtonReference();
-
-        if (publishButtonRect == null)
-        {
-            return;
-        }
+        if (publishButtonRect == null) return;
 
         publishButtonRect.anchoredPosition = publishButtonBasePosition;
         publishButtonRect.localScale = publishButtonBaseScale;
         publishButtonRect.localRotation = publishButtonBaseRotation;
-
-        if (publishButtonImage != null)
-        {
-            publishButtonImage.color = Color.white;
-        }
+        if (publishButtonImage != null) publishButtonImage.color = Color.white;
     }
 }
