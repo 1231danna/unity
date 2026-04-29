@@ -25,6 +25,11 @@ public class IntroManager : MonoBehaviour
     public AudioClip typeSound;
     public SmoothInteractionCamera camScript;
 
+    // --- 新增：正片背景音乐 ---
+    [Header("音乐设置")]
+    [Tooltip("开场动画结束后播放的背景音乐")]
+    public AudioClip mainBGM;
+
     private string currentVisibleText = "";
     private bool isTypingFinished = false;
 
@@ -112,9 +117,16 @@ public class IntroManager : MonoBehaviour
         // --- 恢复相机控制 ---
         if (camScript != null) camScript.SetCameraFrozen(false);
         introGroup.blocksRaycasts = false;
-        gameObject.SetActive(false);
+        
+        // --- 核心新增：呼叫 AudioManager 播放正式音乐 ---
+        if (AudioManager.Instance != null && mainBGM != null)
+        {
+            AudioManager.Instance.PlayBGM(mainBGM);
+        }
 
-        // --- 新增：调用新手引导 (确保场景里有 TutorialManager 脚本) ---
+        gameObject.SetActive(false); // 隐藏黑屏面板
+
+        // --- 调用新手引导 ---
         TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
         if (tm != null)
         {
