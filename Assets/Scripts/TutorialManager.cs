@@ -2,7 +2,6 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 
-// 新增：将文字和对应的高光目标绑定在一起
 [System.Serializable]
 public class TutorialStep
 {
@@ -37,7 +36,6 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    // 1. 开场动画调用
     public void ShowTutorial()
     {
         currentIndex = 0;
@@ -47,10 +45,8 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    // 2. 推进到下一步 (点击物体 / 关闭面板时调用)
     public void ShowNextStep()
     {
-        // 弹出新对话前，强制关闭当前正亮着的高光
         if (currentActiveTarget != null)
         {
             currentActiveTarget.SetTutorialTarget(false);
@@ -70,19 +66,17 @@ public class TutorialManager : MonoBehaviour
         if (tutorialPanel != null) StartCoroutine(FadeInTutorial());
     }
 
-    // 3. 绑定到 UI 对话框上的 [关闭/Next按钮]
     public void CloseTutorial()
     {
         HideTutorial();
         
-        // 【核心逻辑】：对话框关闭时，激活当前步骤配对的高光物体
         if (currentIndex >= 0 && currentIndex < tutorialSteps.Length)
         {
             HoverOutline nextTarget = tutorialSteps[currentIndex].targetToHighlight;
             if (nextTarget != null)
             {
                 nextTarget.SetTutorialTarget(true);
-                currentActiveTarget = nextTarget; // 记录下来，方便下一步关闭
+                currentActiveTarget = nextTarget; 
             }
         }
     }
@@ -90,7 +84,7 @@ public class TutorialManager : MonoBehaviour
     IEnumerator FadeInTutorial()
     {
         float elapsed = 0;
-        tutorialPanel.blocksRaycasts = true; // 允许点击关闭按钮
+        tutorialPanel.blocksRaycasts = true; 
         while (elapsed < 0.5f)
         {
             elapsed += Time.deltaTime;
@@ -106,5 +100,29 @@ public class TutorialManager : MonoBehaviour
             tutorialPanel.alpha = 0;
             tutorialPanel.blocksRaycasts = false;
         }
+    }
+
+    // --- 门卫机制：判断某个物体当前是否允许被交互 ---
+    // 这个就是 PanelController 找不到的那个方法，现在加进来了！
+    public bool CanInteractWith(GameObject obj)
+    {
+        // 1. 如果对话框正在显示，严禁点击后面的任何 3D 物体
+        if (tutorialPanel != null && tutorialPanel.blocksRaycasts)
+        {
+            return false;
+        }
+
+        // 2. 如果当前有正在发光的高光目标，严格限制：【只能点它，别的全拦截】
+        if (currentActiveTarget != null)
+        {
+            // 检查：被点击的物体是不是目标本身，或者是不是目标底下的子物体
+            bool isTarget = (obj == currentActiveTarget.gameObject) || 
+                            (obj.transform.IsChildOf(currentActiveTarget.transform));
+            
+            return isTarget;
+        }
+
+        // 3. 如果指引已经全部结束，或者当前步骤本来就没安排高光，则允许自由探索
+        return true;
     }
 }

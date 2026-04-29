@@ -11,8 +11,6 @@ public class PanelController : MonoBehaviour
     [Header("引用")]
     public SmoothInteractionCamera camScript;
 
-    private bool hasTriggeredFinalDialogue = false; 
-
     public void Show(Sprite photo)
     {
         if (photo == null) return;
@@ -29,20 +27,7 @@ public class PanelController : MonoBehaviour
 
     public void Hide()
     {
-        // 1. 在隐藏面板之前，先找到 TutorialManager 并把延迟任务交给它
-        if (!hasTriggeredFinalDialogue)
-        {
-            TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
-            if (tm != null)
-            {
-                // 核心修改：用 tm.StartCoroutine 代替 StartCoroutine
-                // 让不会被隐藏的 TutorialManager 来倒计时
-                tm.StartCoroutine(TriggerDelayedTutorial(tm));
-            }
-            hasTriggeredFinalDialogue = true; 
-        }
-
-        // 2. 放心大胆地隐藏面板，不会再打断倒计时了
+        // 1. 先安全地隐藏面板
         bigPhotoPanel.SetActive(false);
         if (closePanelButton != null) closePanelButton.SetActive(false);
 
@@ -51,9 +36,20 @@ public class PanelController : MonoBehaviour
             camScript.isShowingDocument = false;
             camScript.UpdateUIButtonVisibility();
         }
+
+        // 2. 智能化触发下一步
+        TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
+        if (tm != null)
+        {
+            // 通过判断此时有没有物体正在发光，来决定要不要推进引导
+            // 这样在以后自由探索时，关掉照片就不会乱弹对话框了
+            if (tm.CanInteractWith(gameObject) == false || tm.tutorialPanel.alpha == 0)
+            {
+                tm.StartCoroutine(TriggerDelayedTutorial(tm));
+            }
+        }
     }
 
-    // 注意这里接收了 tm 作为参数
     IEnumerator TriggerDelayedTutorial(TutorialManager tm)
     {
         yield return new WaitForSeconds(0.5f); 

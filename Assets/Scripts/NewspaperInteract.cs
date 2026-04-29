@@ -2,18 +2,30 @@ using UnityEngine;
 
 public class NewspaperInteract : MonoBehaviour
 {
-    // 将类型从 GameObject 改为 NewspaperManager，这样可以直接调用它的方法
     public NewspaperManager newspaperManager;
 
     void OnMouseDown()
     {
+        // 防误触 1：防止穿透 UI
+        if (UnityEngine.EventSystems.EventSystem.current != null && 
+            UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) 
+        {
+            return;
+        }
+
+        // 防误触 2：询问 TutorialManager 是否允许点击
+        TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
+        if (tm != null && !tm.CanInteractWith(gameObject))
+        {
+            return; // 被拦截，直接退出
+        }
+
+        // 执行正常的打开报纸逻辑
         if (newspaperManager != null)
         {
-            // 关键：调用这个方法，它内部已经包含了面板显示和相机锁定的逻辑
             newspaperManager.OnOpenNewspaper();
         }
 
-        // 释放鼠标
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
