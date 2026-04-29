@@ -1,0 +1,22 @@
+fileFormatVersion: 2
+guid: c0125da655c01d449b8d479338d9e64a
+TrueTypeFontImporter:
+  externalObjects: {}
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontNames:
+  - Solaris
+  fallbackFontReferences:
+  - {fileID: 12800000, guid: 62c94517c9a872d4bbb83952a113b360, type: 3}
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  useLegacyBoundsCalculation: 0
+  shouldRoundAdvanceValue: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
