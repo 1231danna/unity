@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public enum PlayState
+   public enum PlayState
 {
     Idle,
     ReadyMove,
     Moving,
     MoveEnd,
     Grey,
+    Dead, // 新增：死亡状态
 }
 
 public enum FactionType
@@ -264,10 +265,21 @@ public class Player : MonoBehaviour
         }
     }
 
-    void Die()
+   void Die()
     {
-        //Play die animation
+        State = PlayState.Dead;
+        animator.SetTrigger("Die"); 
+        
+        // hide the ui
+        if (healthBar != null)
+        {
+            healthBar.gameObject.SetActive(false);
+        }
+
+        // clear the ui
         board.ClearAllUITiles();
+
+    
         if (Tile != null)
         {
             if (this.isCover) Tile.CoverOnTile = null;
@@ -280,7 +292,9 @@ public class Player : MonoBehaviour
             else endTile.PlayerOnTile = null;
         }
 
-        Debug.Log($"{gameObject.name} is dead.");
+        Debug.Log($"{gameObject.name} deadbody");
+        
+        // removewe from rounds
         GameBoard.instance.RemovePlayerFromList(this);
         
         if(TurnManager.instance != null)
@@ -288,8 +302,16 @@ public class Player : MonoBehaviour
             TurnManager.instance.CheckGameOver();
             TurnManager.instance.CheckVictory();
         }
+
+        if(this.isCover)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            GetComponent<SpriteRenderer>().sortingOrder = -10; 
+        }
         
-        Destroy(gameObject);
     }
 
     [Header("Attack Settings")]
@@ -319,23 +341,28 @@ public class Player : MonoBehaviour
             return new Vector2Int(0, dy > 0 ? 1 : -1);
     }
 
-    public void ForceFaceTarget(LogicTile targetTile)
-    {
-        Vector2Int facing = GetDirectionTo(this.Tile, targetTile);
+   public void ForceFaceTarget(LogicTile targetTile)
+{
+    Vector2Int facing = GetDirectionTo(this.Tile, targetTile);
 
-        string fullStateName = $"{team}_Move_{(facing.x == 1 ? "Right" : facing.x == -1 ? "Left" : facing.y == 1 ? "Up" : "Down")}";
-
-        animator.Play(fullStateName, 0, 0f);
-
-        animator.SetInteger("x", facing.x);
-        animator.SetInteger("y", facing.y);
-        animator.SetBool("isActive", true);
-    }
+    // 1. 只更新 Animator 的朝向参数
+    animator.SetInteger("x", facing.x);
+    animator.SetInteger("y", facing.y);
+    animator.SetBool("isActive", true);
+}
 
     // attack
-    public void PlayAttackAnimation(LogicTile targetTile)
+   public void PlayAttackAnimation(LogicTile targetTile)
     {
-        ForceFaceTarget(targetTile);
+        // 1. 只计算朝向，赋值给 Animator 的 x 和 y 参数
+        Vector2Int facing = GetDirectionTo(this.Tile, targetTile);
+        animator.SetInteger("x", facing.x);
+        animator.SetInteger("y", facing.y);
+        
+        // 2. 触发攻击动画
         animator.SetTrigger("Attack"); 
+    
     }
+
+    
 }

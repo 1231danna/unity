@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
+//using System.Numerics;
 
 public class UIManager : MonoBehaviour
 {
@@ -19,6 +20,8 @@ public class UIManager : MonoBehaviour
     Button stayBtn;
     [SerializeField]
     Button undoBtn;
+    [SerializeField]
+    Vector3  menuPosition = new Vector3(60, 25, 0);
 
     [Header("SystemMenu")]
     public GameObject systemMenu;
@@ -58,7 +61,7 @@ public class UIManager : MonoBehaviour
     {
         Vector3 screenPos = Camera.main.WorldToScreenPoint(currentUnit.transform.position);
         screenPos.z = 0; 
-        actionMenu.transform.position = screenPos + new Vector3(60, 25, 0);
+        actionMenu.transform.position = screenPos + menuPosition;
     }
 
     public void ShowActionMenu(Player unit)

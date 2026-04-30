@@ -8,6 +8,7 @@ public enum UITileType
 {
     Move,
     Attack,
+    Damage,
 }
 
 public class GameBoard : MonoBehaviour
@@ -224,16 +225,16 @@ public class GameBoard : MonoBehaviour
         return null;
     }
 
-    IEnumerator ShowAOETemporary(Player attacker, LogicTile centerTile, List<Vector2Int> shape)
+   IEnumerator ShowAOETemporary(Player attacker, LogicTile centerTile, List<Vector2Int> shape)
     {
-        
         attacker.ForceFaceTarget(centerTile);
         
         Vector2Int facing = Player.GetDirectionTo(attacker.Tile, centerTile);
         Debug.Log($"[DEBUG] 预览方向: {facing}");
         
         var area = GetAOEArea(centerTile, facing, shape);
-        ShowOneUITile(area, UITileType.Attack);
+        
+        ShowOneUITile(area, UITileType.Damage); 
 
         yield return new WaitForSeconds(1.0f);
 
@@ -629,7 +630,7 @@ public class GameBoard : MonoBehaviour
         return results;
     }
 
-    public void ShowAOEPreview(Player attacker, LogicTile centerTile)
+ public void ShowAOEPreview(Player attacker, LogicTile centerTile)
     {
         Vector2Int facing = Player.GetDirectionTo(attacker.Tile, centerTile);
 
@@ -638,7 +639,7 @@ public class GameBoard : MonoBehaviour
         var shape = attacker.GetMyShape();
         var area = GetAOEArea(centerTile, facing, shape);
 
-        ShowOneUITile(area, UITileType.Attack);
+        ShowOneUITile(area, UITileType.Damage); 
     }
 
 }

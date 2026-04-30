@@ -37,7 +37,7 @@ public class CombatManager : MonoBehaviour
             {
                 if (!defender.isCover)
                 {
-                    finalDefense += 2;
+                    finalDefense += 20;
                 }
             }
         }
@@ -46,42 +46,31 @@ public class CombatManager : MonoBehaviour
 
    public void StartCombat(Player attacker, Player defender)
     {
-        // 开启战斗序列的协程
         StartCoroutine(CombatSequence(attacker, defender));
     }
-
-    // 新增：战斗时间线协程
     private IEnumerator CombatSequence(Player attacker, Player defender)
     {
-        // === 1. 攻击者发起攻击 ===
+    
         attacker.PlayAttackAnimation(defender.Tile);
-        
-        // 等待动画播放到“挥刀/开枪”的受击点（假设动画长度或前摇是0.5秒）
-        // 这个数值你可以根据实际美术素材的节奏自己调
+    
         yield return new WaitForSeconds(0.5f); 
 
-        // 结算伤害并扣血
         ExecuteAttack(attacker, defender);
 
-        // 等待一下，让玩家看清伤害数字
         yield return new WaitForSeconds(0.3f);
 
-        //  防守者反击逻辑 
         if (!defender.IsDead && !defender.isCover)
         {
             int distance = Mathf.Abs(attacker.EndTile.X - defender.Tile.X) + Mathf.Abs(attacker.EndTile.Y - defender.Tile.Y);
             if (distance <= defender.AttackRange)
             {
-                // 防守者播放反击动画
+
                 defender.PlayAttackAnimation(attacker.Tile);
                 
-                // 同样等待反击动画播到受击点
                 yield return new WaitForSeconds(0.5f);
                 
-                // 结算反击伤害
                 ExecuteAttack(defender, attacker);
                 
-                // 等待伤害表现
                 yield return new WaitForSeconds(0.3f);
             }
             else
@@ -90,8 +79,6 @@ public class CombatManager : MonoBehaviour
             }
         }
 
-        // === 3. 战斗结束 ===
-        // 给最后一点缓冲时间，然后让攻击者进入待机（变灰）
         yield return new WaitForSeconds(0.2f);
         attacker.StandBy();
     }
@@ -105,41 +92,61 @@ public class CombatManager : MonoBehaviour
         defender.TakeDamage(damage);
     }
 
+  
     public void ExecuteAOE(Player attacker, LogicTile targetTile, List<Vector2Int> shape)
+    {
+  
+        StartCoroutine(AOESequence(attacker, targetTile, shape));
+    }
+
+    private IEnumerator AOESequence(Player attacker, LogicTile targetTile, List<Vector2Int> shape)
     {
         string aoeName = attacker.GetMyShape().ToString();
         Debug.Log($" {attacker.name} 发动了 {aoeName} ");
         
         attacker.ForceFaceTarget(targetTile);
-
         Vector2Int facing = Player.GetDirectionTo(attacker.Tile, targetTile);
 
-        List<LogicTile> area = GameBoard.instance.GetAOEArea(targetTile, facing, shape);
+        attacker.PlayAttackAnimation(targetTile);
 
+        // wait for Animation
+        yield return new WaitForSeconds(0.5f);
+
+        List<LogicTile> area = GameBoard.instance.GetAOEArea(targetTile, facing, shape);
+        
         Player mainTarget = targetTile.PlayerOnTile;
         if (mainTarget == null) mainTarget = targetTile.CoverOnTile;
         
         if (attacker.AOEType == AOEType.Single && mainTarget == null)
         {
             Debug.Log("单体攻击无法打空地");
-            return;
+            attacker.StandBy();
+            yield break; 
         }
         
         foreach (var tile in area)
         {
             if (tile == null) continue;
-            
-            Player target = tile.PlayerOnTile;
-            if (target == null) target = tile.CoverOnTile;
 
-            if (target != null && target != attacker)
+            if (tile.PlayerOnTile != null && tile.PlayerOnTile != attacker)
             {
-                int damage = CalculateDamage(attacker, target);
-
-                target.TakeDamage(damage);
-                Debug.Log($"AOE命中了 {target.name}造成 {damage} 点伤害");
+                Player target = tile.PlayerOnTile;
+                int damage = CalculateDamage(attacker, tile.PlayerOnTile);
+                Debug.Log($"AOE命中了 {tile.PlayerOnTile.name}造成 {damage} 点伤害");
+                tile.PlayerOnTile.TakeDamage(damage);
             }
+
+            if (tile.CoverOnTile != null && tile.CoverOnTile != attacker)
+            {
+                Player targetCover = tile.CoverOnTile;
+                int damage = CalculateDamage(attacker, targetCover);
+                Debug.Log($"AOE击中了掩体 {targetCover.name} 造成 {damage} 点伤害");
+                targetCover.TakeDamage(damage);
+            }
+
         }
+
+        yield return new WaitForSeconds(0.3f);
 
         attacker.StandBy();
     }
@@ -154,30 +161,42 @@ public class CombatManager : MonoBehaviour
         foreach (var tile in area)
         {
             if (tile == null) continue;
-            Player target = tile.PlayerOnTile;
-            if (target == null) target = tile.CoverOnTile;
 
-            if (target != null && target != attacker)
+            if (tile.PlayerOnTile != null && tile.PlayerOnTile != attacker)
             {
-                int predictedDamage = CalculateDamage(attacker, target);
+                Player targetPlayer = tile.PlayerOnTile;
+                int predictedDamage = CalculateDamage(attacker, targetPlayer);
                 
-                if (target.healthBar != null)
+                if (targetPlayer.healthBar != null)
                 {
-                    target.healthBar.ShowPreview(target.currentHP, predictedDamage, target.maxHP);
+                    targetPlayer.healthBar.ShowPreview(targetPlayer.currentHP, predictedDamage, targetPlayer.maxHP);
                 }
 
-                if (attacker.AOEType == AOEType.Single && !target.isCover)
+                if (attacker.AOEType == AOEType.Single && !targetPlayer.isCover)
                 {
-                    if (target.currentHP - predictedDamage > 0)
+                    if (targetPlayer.currentHP - predictedDamage > 0)
                     {
-                        int distance = Mathf.Abs(attacker.Tile.X - target.Tile.X) + Mathf.Abs(attacker.Tile.Y - target.Tile.Y);
-                        if (distance <= target.AttackRange)
+                        int distance = Mathf.Abs(attacker.Tile.X - targetPlayer.Tile.X) + Mathf.Abs(attacker.Tile.Y - targetPlayer.Tile.Y);
+                        if (distance <= targetPlayer.AttackRange)
                         {
-                            totalCounterDamage += CalculateDamage(target, attacker);
+                            totalCounterDamage += CalculateDamage(targetPlayer, attacker);
                         }
                     }
                 }
             }
+                
+            if (tile.CoverOnTile != null && tile.CoverOnTile != attacker)
+            {
+                Player targetCover = tile.CoverOnTile;
+                int predictedDamage = CalculateDamage(attacker, targetCover);
+
+                if (targetCover.healthBar != null)
+                {
+                        targetCover.healthBar.ShowPreview(targetCover.currentHP, predictedDamage, targetCover.maxHP);
+                }
+            }
+                
+            
         }
 
         if (totalCounterDamage > 0 && attacker.healthBar != null)
@@ -194,15 +213,14 @@ public class CombatManager : MonoBehaviour
         foreach (var tile in area)
         {
             if (tile == null) continue;
-            Player target = tile.PlayerOnTile;
-            if (target == null) target = tile.CoverOnTile;
-
-            if (target != null && target != attacker)
+            if (tile.PlayerOnTile != null && tile.PlayerOnTile != attacker && tile.PlayerOnTile.healthBar != null)
             {
-                if (target.healthBar != null)
-                {
-                    target.healthBar.CancelPreview(target.currentHP, target.maxHP);
-                }
+                tile.PlayerOnTile.healthBar.CancelPreview(tile.PlayerOnTile.currentHP, tile.PlayerOnTile.maxHP);
+            }
+
+            if (tile.CoverOnTile != null && tile.CoverOnTile != attacker && tile.CoverOnTile.healthBar != null)
+            {
+                tile.CoverOnTile.healthBar.CancelPreview(tile.CoverOnTile.currentHP, tile.CoverOnTile.maxHP);
             }
         }
 
@@ -211,5 +229,9 @@ public class CombatManager : MonoBehaviour
             attacker.healthBar.CancelPreview(attacker.currentHP, attacker.maxHP);
         }
     }
+
+ 
+
+
 
 }

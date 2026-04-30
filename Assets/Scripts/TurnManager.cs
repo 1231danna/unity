@@ -110,6 +110,8 @@ public class TurnManager : MonoBehaviour
         {
             if(unit == null || unit.IsDead) continue;
 
+            if(unit.isCover) continue;
+
             CameraController.instance.FocusOn(unit.transform.position);
             yield return new WaitForSeconds(0.8f);
 
@@ -175,7 +177,7 @@ public class TurnManager : MonoBehaviour
 
         foreach(var p in GameBoard.instance.allMyPlayers)
         {
-            if(p != null && !p.IsDead && self.IsEnemy(p))
+            if(p != null && !p.IsDead && self.IsEnemy(p) && !p.isCover)
             {
                 int d = Mathf.Abs(self.Tile.X - p.Tile.X) + Mathf.Abs(self.Tile.Y - p.Tile.Y);
                 if(d < minDist)
