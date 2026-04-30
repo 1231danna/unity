@@ -10,7 +10,7 @@ using UnityEngine;
     Moving,
     MoveEnd,
     Grey,
-    Dead, // 新增：死亡状态
+    Dead,
 }
 
 public enum FactionType
@@ -270,13 +270,11 @@ public class Player : MonoBehaviour
         State = PlayState.Dead;
         animator.SetTrigger("Die"); 
         
-        // hide the ui
         if (healthBar != null)
         {
             healthBar.gameObject.SetActive(false);
         }
 
-        // clear the ui
         board.ClearAllUITiles();
 
     
@@ -294,7 +292,6 @@ public class Player : MonoBehaviour
 
         Debug.Log($"{gameObject.name} deadbody");
         
-        // removewe from rounds
         GameBoard.instance.RemovePlayerFromList(this);
         
         if(TurnManager.instance != null)
@@ -345,21 +342,18 @@ public class Player : MonoBehaviour
 {
     Vector2Int facing = GetDirectionTo(this.Tile, targetTile);
 
-    // 1. 只更新 Animator 的朝向参数
     animator.SetInteger("x", facing.x);
     animator.SetInteger("y", facing.y);
     animator.SetBool("isActive", true);
 }
 
-    // attack
+    // attack animation
    public void PlayAttackAnimation(LogicTile targetTile)
     {
-        // 1. 只计算朝向，赋值给 Animator 的 x 和 y 参数
         Vector2Int facing = GetDirectionTo(this.Tile, targetTile);
         animator.SetInteger("x", facing.x);
         animator.SetInteger("y", facing.y);
         
-        // 2. 触发攻击动画
         animator.SetTrigger("Attack"); 
     
     }

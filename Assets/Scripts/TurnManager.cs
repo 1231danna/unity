@@ -54,7 +54,7 @@ public class TurnManager : MonoBehaviour
         {
             if (GameBoard.instance.GetPlayersByTeam(PlayerType.Other).Count == 0)
             {
-                Debug.Log("没有other单位，跳过Other回合");
+                Debug.Log("没有other单位,跳过Other回合");
                 SetState(BattleState.PlayerTurn);
                 return;
             }
