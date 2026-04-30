@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class SmoothInteractionCamera : MonoBehaviour
 {
+    [Header("启动设置")]
+    [Tooltip("场景1有开场动画，需勾选(锁死)。场景2没有开场动画，【取消勾选】！")]
+    public bool startFrozen = false; 
+
     [Header("相机目标锚点")]
     public Transform initialAnchor;
     public Transform notebookAnchor;
@@ -32,7 +36,6 @@ public class SmoothInteractionCamera : MonoBehaviour
     private float currentBreatheAmplitude;
     private bool isFrozen = true;
     
-    // 新增：防止重复触发第二段对话
     private bool hasTriggeredWorkingboardTutorial = false; 
 
     void Start()
@@ -40,7 +43,9 @@ public class SmoothInteractionCamera : MonoBehaviour
         if (initialAnchor != null) targetAnchor = initialAnchor;
         currentBreatheAmplitude = defaultBreatheAmplitude;
         UpdateUIButtonVisibility();
-        SetCameraFrozen(true);
+        
+        // 【核心修改】：不再写死为 true，而是根据面板开关决定
+        SetCameraFrozen(startFrozen); 
     }
 
     public void SetCameraFrozen(bool state) => isFrozen = state;
@@ -54,7 +59,6 @@ public class SmoothInteractionCamera : MonoBehaviour
             {
                 if (hit.collider.gameObject.name == "Workingboard")
                 {
-                    // 触发第二段对话 (仅触发一次)
                     if (!hasTriggeredWorkingboardTutorial)
                     {
                         TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();

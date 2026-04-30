@@ -15,8 +15,11 @@ public class TutorialStep
 
 public class TutorialManager : MonoBehaviour
 {
-    [Header("模式设置")]
-    [Tooltip("勾选此项，将跳过所有对话框，直接进行高光无缝指引（场景2专用）")]
+    [Header("启动设置 (场景2请勾选前两项)")]
+    [Tooltip("勾选此项，场景一运行会自动等待0.5秒后触发第一步")]
+    public bool autoStartTutorial = false;
+    
+    [Tooltip("勾选此项，将跳过所有对话框，直接进行高光无缝指引")]
     public bool isSilentMode = false;
 
     [Header("UI 设置")]
@@ -28,13 +31,13 @@ public class TutorialManager : MonoBehaviour
     public TutorialStep[] tutorialSteps; 
 
     private int currentIndex = -1;
-    private HoverOutline currentActiveTarget; // 记录当前亮起的高光物体
+    private HoverOutline currentActiveTarget; 
 
     void Start()
     {
+        // 1. 初始化 UI 面板状态
         if (tutorialPanel != null)
         {
-            // 如果是静默模式，直接把 UI 彻底关掉
             if (isSilentMode)
             {
                 tutorialPanel.gameObject.SetActive(false);
@@ -46,6 +49,19 @@ public class TutorialManager : MonoBehaviour
                 tutorialPanel.blocksRaycasts = false;
             }
         }
+
+        // 2. 判断是否需要自动启动
+        if (autoStartTutorial)
+        {
+            StartCoroutine(DelayedStart());
+        }
+    }
+
+    // 等待 0.5 秒，确保所有其他脚本加载完毕，然后启动指引
+    IEnumerator DelayedStart()
+    {
+        yield return new WaitForSeconds(0.5f);
+        ShowTutorial();
     }
 
     public void ShowTutorial()
@@ -55,12 +71,10 @@ public class TutorialManager : MonoBehaviour
         {
             if (isSilentMode)
             {
-                // 静默模式：不弹文字，直接亮起第 0 个高光（工作板）
                 ActivateTarget(currentIndex);
             }
             else
             {
-                // 正常模式：弹第一段文字
                 ShowDetailedInstruction(tutorialSteps[0].dialogueText);
             }
         }
@@ -100,7 +114,6 @@ public class TutorialManager : MonoBehaviour
     public void CloseTutorial()
     {
         HideTutorial();
-        
         // 正常模式下，关闭对话框时亮起高光
         ActivateTarget(currentIndex);
     }
@@ -150,6 +163,7 @@ public class TutorialManager : MonoBehaviour
 
         if (currentActiveTarget != null)
         {
+            // 防误触核心：只能点击发光目标本身或其子物体（处理网格模型判定）
             bool isTarget = (obj == currentActiveTarget.gameObject) || 
                             (obj.transform.IsChildOf(currentActiveTarget.transform));
             return isTarget;
