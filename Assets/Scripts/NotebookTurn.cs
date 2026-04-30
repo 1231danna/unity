@@ -17,7 +17,10 @@ public class NotebookTurn : MonoBehaviour
 
         [Header("交互逻辑选择")]
         public bool isSceneJump;
-        public Object sceneToLoad; // 如果勾选了isSceneJump，请拖入要跳转的场景
+        
+        [Header("要跳转的场景名称（必须填入准确的名字）")]
+        // 【修改点1】：将 Object 替换为 string
+        public string sceneNameToLoad; 
     }
 
     [Header("核心引用")]
@@ -58,9 +61,10 @@ public class NotebookTurn : MonoBehaviour
             if (s.nextBtn != null)
             {
                 if (s.isSceneJump)
-                    s.nextBtn.onClick.AddListener(() => StartCoroutine(TransitionAndLoad(s.sceneToLoad)));
+                    // 【修改点2】：传入修改后的 sceneNameToLoad 变量
+                    s.nextBtn.onClick.AddListener(() => StartCoroutine(TransitionAndLoad(s.sceneNameToLoad)));
                 else
-                    s.nextBtn.onClick.AddListener(NextStepAction); // 修改为切换下一步骤
+                    s.nextBtn.onClick.AddListener(NextStepAction); 
             }
         }
 
@@ -81,9 +85,15 @@ public class NotebookTurn : MonoBehaviour
     }
 
     // --- 场景跳转冲刺逻辑 ---
-    IEnumerator TransitionAndLoad(Object sceneObj)
+    // 【修改点3】：参数类型改为 string
+    IEnumerator TransitionAndLoad(string targetSceneName)
     {
-        if (sceneObj == null) yield break;
+        // 增加安全防错：如果在Inspector里忘了填名字，则中止协程并报错提示
+        if (string.IsNullOrEmpty(targetSceneName))
+        {
+            Debug.LogError("跳转失败：未在 Inspector 中填写要跳转的场景名称！");
+            yield break;
+        }
 
         steps[currentIdx].rootGroup.SetActive(false);
 
@@ -113,7 +123,8 @@ public class NotebookTurn : MonoBehaviour
             yield return null;
         }
 
-        SceneManager.LoadScene(sceneObj.name);
+        // 【修改点4】：直接使用字符串名字加载场景
+        SceneManager.LoadScene(targetSceneName);
     }
 
     // --- 打字机效果 ---
