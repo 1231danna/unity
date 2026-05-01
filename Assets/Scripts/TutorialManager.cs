@@ -6,28 +6,18 @@ using System.Collections;
 public class TutorialStep
 {
     [TextArea(3, 5)]
-    [Tooltip("这段引导的文字内容")]
     public string dialogueText;
 
-    [Tooltip("这段对话【关闭后】（或静默模式下直接）需要亮起高光的物体。如果没有就留空。")]
     public HoverOutline targetToHighlight;
 }
 
 public class TutorialManager : MonoBehaviour
 {
-    [Header("启动设置 (场景2请勾选前两项)")]
-    [Tooltip("勾选此项，场景一运行会自动等待0.5秒后触发第一步")]
+
     public bool autoStartTutorial = false;
-
-    [Tooltip("勾选此项，将跳过所有对话框，直接进行高光无缝指引")]
     public bool isSilentMode = false;
-
-    [Header("UI 设置")]
     public CanvasGroup tutorialPanel;
     public TMP_Text tutorialText;
-
-    [Header("引导流程配置")]
-    [Tooltip("按顺序配置每个步骤的文字和高光目标")]
     public TutorialStep[] tutorialSteps;
 
     private int currentIndex = -1;
