@@ -8,7 +8,6 @@ public class PanelController : MonoBehaviour
     public Image displayImage;
     public GameObject closePanelButton;
 
-    [Header("引用")]
     public SmoothInteractionCamera camScript;
 
     public void Show(Sprite photo)

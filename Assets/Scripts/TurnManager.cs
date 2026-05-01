@@ -45,7 +45,7 @@ public class TurnManager : MonoBehaviour
         {
             if (GameBoard.instance.GetPlayersByTeam(PlayerType.Enemy).Count == 0)
             {
-                Debug.Log("没有敌人，跳过敌人回合");
+                Debug.Log("No enemy");
                 SetState(BattleState.OtherTurn);
                 return;
             }
@@ -54,7 +54,7 @@ public class TurnManager : MonoBehaviour
         {
             if (GameBoard.instance.GetPlayersByTeam(PlayerType.Other).Count == 0)
             {
-                Debug.Log("没有other单位,跳过Other回合");
+                Debug.Log("no other set");
                 SetState(BattleState.PlayerTurn);
                 return;
             }
@@ -62,7 +62,7 @@ public class TurnManager : MonoBehaviour
         else if (newState == BattleState.PlayerTurn)
         {
             turnCount++;
-            Debug.Log($"第 {turnCount} 回合 ");
+            Debug.Log($" {turnCount} round ");
 
             CheckVictory();
             CheckGameOver();
@@ -81,7 +81,7 @@ public class TurnManager : MonoBehaviour
 
         
         currentState = newState;
-        Debug.Log($"回合切换到 {currentState}");
+        Debug.Log($"round turn to {currentState}");
 
         switch (currentState)
         {

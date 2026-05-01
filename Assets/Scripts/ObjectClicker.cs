@@ -8,7 +8,6 @@ public class ObjectClicker : MonoBehaviour
     private const string VideoTriggerSpriteName = "moive";
     private const string TestVideoFileName = "test-video.mp4";
 
-    [Header("视角切换目标物体")]
     public GameObject notebookObject;     
     public GameObject workingboardObject;
     public TaskTracker taskTracker;
