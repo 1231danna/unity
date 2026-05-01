@@ -27,8 +27,7 @@ public class PanelController : MonoBehaviour
 
     public void Hide()
     {
-        // 1. 先安全地隐藏面板
-        bigPhotoPanel.SetActive(false);
+         bigPhotoPanel.SetActive(false);
         if (closePanelButton != null) closePanelButton.SetActive(false);
 
         if (camScript != null)
@@ -37,12 +36,9 @@ public class PanelController : MonoBehaviour
             camScript.UpdateUIButtonVisibility();
         }
 
-        // 2. 智能化触发下一步
         TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
         if (tm != null)
         {
-            // 通过判断此时有没有物体正在发光，来决定要不要推进引导
-            // 这样在以后自由探索时，关掉照片就不会乱弹对话框了
             if (tm.CanInteractWith(gameObject) == false || tm.tutorialPanel.alpha == 0)
             {
                 tm.StartCoroutine(TriggerDelayedTutorial(tm));

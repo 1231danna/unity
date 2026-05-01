@@ -25,7 +25,6 @@ public class HoverOutline : MonoBehaviour
     public void SetTutorialTarget(bool active)
     {
         isTutorialTarget = active;
-        // 如果被关闭，立即隐藏高光
         if (!active && _outlinable != null) _outlinable.enabled = false;
     }
 }
