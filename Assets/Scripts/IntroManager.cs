@@ -26,10 +26,6 @@ public class IntroManager : MonoBehaviour
     private string currentVisibleText = "";
     private bool isTypingFinished = false;
 
-    // --- 【开发备注：开始】 不需要跳过功能时，可以删除下面这一行 ---
-    private bool skipRequested = false;
-    // --- 【开发备注：结束】 ---
-
     void Start()
     {
         if (camScript != null) camScript.SetCameraFrozen(true);
@@ -43,34 +39,15 @@ public class IntroManager : MonoBehaviour
         StartCoroutine(FilmGrainRoutine());
     }
 
-    // --- 【开发备注：开始】 不需要跳过功能时，可以删除整个 Update 函数 ---
-    void Update()
-    {
-        // 检测鼠标左键点击，设置为请求跳过
-        if (Input.GetMouseButtonDown(0))
-        {
-            skipRequested = true;
-        }
-    }
-    // --- 【开发备注：结束】 ---
-
     IEnumerator PlayIntro()
     {
         yield return new WaitForSeconds(0.8f);
 
         foreach (string line in storyLines)
         {
-            // --- 【开发备注：开始】 不需要跳过功能时，可以删除下面这一行 ---
-            if (skipRequested) break;
-            // --- 【开发备注：结束】 ---
-
             currentVisibleText = "";
             for (int i = 0; i < line.Length; i++)
             {
-                // --- 【开发备注：开始】 不需要跳过功能时，可以删除下面这一行 ---
-                if (skipRequested) break;
-                // --- 【开发备注：结束】 ---
-
                 currentVisibleText += line[i];
 
                 if (i % 5 == 0 && audioSource != null && typeSound != null)
@@ -87,28 +64,22 @@ public class IntroManager : MonoBehaviour
                 yield return new WaitForSeconds(delay);
             }
 
-            // --- 【开发备注：开始】 修改：增加对跳过的判断，防止跳过时产生不必要的停顿 ---
-            if (!skipRequested) yield return new WaitForSeconds(1.2f);
-            // --- 【开发备注：结束】 ---
+            yield return new WaitForSeconds(1.2f);
         }
 
         isTypingFinished = true;
 
-        // --- 【开发备注：开始】 修改：跳过时让黑屏瞬间消失 (0.1秒)，否则使用原定淡出时间 ---
-        float actualFadeDuration = skipRequested ? 0.1f : fadeDuration;
-        // --- 【开发备注：结束】 ---
-
         float elapsed = 0;
-        while (elapsed < actualFadeDuration)
+        while (elapsed < fadeDuration)
         {
             elapsed += Time.deltaTime;
-            introGroup.alpha = 1 - (elapsed / actualFadeDuration);
+            introGroup.alpha = 1 - (elapsed / fadeDuration);
             yield return null;
         }
 
         if (camScript != null) camScript.SetCameraFrozen(false);
         introGroup.blocksRaycasts = false;
-        
+
         if (AudioManager.Instance != null && mainBGM != null)
         {
             AudioManager.Instance.PlayBGM(mainBGM);
@@ -123,7 +94,7 @@ public class IntroManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("cant find tutorial.");
+            Debug.LogWarning("Cant find TutorialManager in scene.");
         }
     }
 
@@ -137,7 +108,6 @@ public class IntroManager : MonoBehaviour
             yield return new WaitForSeconds(0.15f);
         }
     }
-
     IEnumerator BlinkCursor()
     {
         while (!isTypingFinished)
