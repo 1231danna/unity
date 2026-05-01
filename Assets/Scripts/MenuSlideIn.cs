@@ -33,7 +33,7 @@ public class MenuSlideIn : MonoBehaviour
             timer += Time.unscaledDeltaTime;
             float t = Mathf.Clamp01(timer / duration);
 
-            // 更慢、更柔和的缓动
+            
             t = EaseOutCubic(t);
 
             panel.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);

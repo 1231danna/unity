@@ -9,13 +9,12 @@ public class ObjectClicker : MonoBehaviour
     private const string TestVideoFileName = "test-video.mp4";
 
     [Header("视角切换目标物体")]
-    public GameObject notebookObject;     // 在 Inspector 面板把笔记本模型拖进来
-    public GameObject workingboardObject; // 在 Inspector 面板把桌子模型拖进来
+    public GameObject notebookObject;     
+    public GameObject workingboardObject;
     public TaskTracker taskTracker;
 
     void Start()
     {
-        // 自动获取相机脚本
         camScript = Camera.main.GetComponent<SmoothInteractionCamera>();
     }
 
@@ -23,32 +22,26 @@ public class ObjectClicker : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            // 1. 如果点在 UI 上（比如点按钮），就不触发场景物体的射线检测
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
 
-            // 2. 发射射线
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
                 GameObject hitObj = hit.collider.gameObject;
 
-                // --- 逻辑 A: 点击物体切换镜头 ---
-
-                // 如果点到了笔记本物体
                 if (hitObj == notebookObject)
                 {
-                    // 问管家：活儿全干完了吗？
                     if (taskTracker != null && !taskTracker.IsEverythingDone())
                     {
-                        Debug.Log("任务未完成，不能进入笔记本。");
-                        return; // 拦截，不切换视角
+                        Debug.Log("mission not complete");
+                        return; 
                     }
                         camScript.targetAnchor = camScript.notebookAnchor;
                     camScript.UpdateUIButtonVisibility();
-                    return; // 切换了镜头就结束本次 Update，不往下执行
+                    return; 
                 }
 
-                // 如果点到了工作板（桌子）物体
+               
                 if (hitObj == workingboardObject)
                 {
                     camScript.targetAnchor = camScript.workingboardAnchor;
@@ -56,7 +49,6 @@ public class ObjectClicker : MonoBehaviour
                     return;
                 }
 
-                // --- 逻辑 B: 点击档案弹出大图 (仅在已经处于工作板视角时生效) ---
 
                 if (camScript != null && camScript.targetAnchor == camScript.workingboardAnchor)
                 {
