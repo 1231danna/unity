@@ -2,28 +2,24 @@ using UnityEngine;
 
 public class SmoothInteractionCamera : MonoBehaviour
 {
-    [Header("启动设置")]
-    [Tooltip("场景1有开场动画，需勾选(锁死)。场景2没有开场动画，【取消勾选】！")]
     public bool startFrozen = false; 
 
-    [Header("相机目标锚点")]
     public Transform initialAnchor;
     public Transform notebookAnchor;
     public Transform workingboardAnchor;
 
-    [Header("UI 按钮引用")]
     public GameObject backButton;
     public GameObject exitButton;
 
-    [Header("移动平滑度")]
+    // movement
     public float moveSpeed = 3f;
     public float rotateSpeed = 3f;
 
-    [Header("初始视角特有的鼠标摆动")]
+    // mouse movement
     public float mouseOffsetRange = 15f;
     public float mouseSmoothTime = 2f;
 
-    [Header("呼吸感设置")]
+    // breath feel
     public float defaultBreatheAmplitude = 0.05f;
     public float focusedBreatheAmplitude = 0.01f;
     public float breatheSpeed = 0.8f;
@@ -44,7 +40,6 @@ public class SmoothInteractionCamera : MonoBehaviour
         currentBreatheAmplitude = defaultBreatheAmplitude;
         UpdateUIButtonVisibility();
         
-        // 【核心修改】：不再写死为 true，而是根据面板开关决定
         SetCameraFrozen(startFrozen); 
     }
 

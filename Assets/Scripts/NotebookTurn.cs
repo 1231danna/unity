@@ -15,25 +15,18 @@ public class NotebookTurn : MonoBehaviour
         public TextMeshProUGUI textMsg;
         public Button nextBtn;
 
-        [Header("交互逻辑选择")]
         public bool isSceneJump;
-        
-        [Header("要跳转的场景名称（必须填入准确的名字）")]
-        // 【修改点1】：将 Object 替换为 string
         public string sceneNameToLoad; 
     }
 
-    [Header("核心引用")]
     public SmoothInteractionCamera camScript;
     public Transform notebookAnchor;
 
-    [Header("冲刺特效设置")]
     public CanvasGroup transitionOverlay;
     public float dashMoveSpeed = 30f;
     public float dashRotateSpeed = 20f;
     public float timeToBlack = 0.5f;
 
-    [Header("交互步骤配置")]
     public List<StepUI> steps;
 
     private int currentIdx = 0;
@@ -47,7 +40,6 @@ public class NotebookTurn : MonoBehaviour
             transitionOverlay.gameObject.SetActive(false);
         }
 
-        // 初始化所有步骤的按钮监听
         for (int i = 0; i < steps.Count; i++)
         {
             int index = i;
@@ -61,18 +53,15 @@ public class NotebookTurn : MonoBehaviour
             if (s.nextBtn != null)
             {
                 if (s.isSceneJump)
-                    // 【修改点2】：传入修改后的 sceneNameToLoad 变量
                     s.nextBtn.onClick.AddListener(() => StartCoroutine(TransitionAndLoad(s.sceneNameToLoad)));
                 else
                     s.nextBtn.onClick.AddListener(NextStepAction); 
             }
         }
 
-        // 游戏开始直接显示第一步（或者通过其他逻辑触发）
         StartCoroutine(ShowUIDelayed(0, 0.5f));
     }
 
-    // --- 切换到下一组UI的操作 ---
     void NextStepAction()
     {
         steps[currentIdx].rootGroup.SetActive(false);
@@ -84,14 +73,11 @@ public class NotebookTurn : MonoBehaviour
         }
     }
 
-    // --- 场景跳转冲刺逻辑 ---
-    // 【修改点3】：参数类型改为 string
     IEnumerator TransitionAndLoad(string targetSceneName)
     {
-        // 增加安全防错：如果在Inspector里忘了填名字，则中止协程并报错提示
         if (string.IsNullOrEmpty(targetSceneName))
         {
-            Debug.LogError("跳转失败：未在 Inspector 中填写要跳转的场景名称！");
+            Debug.LogError("no scene name");
             yield break;
         }
 
@@ -123,11 +109,10 @@ public class NotebookTurn : MonoBehaviour
             yield return null;
         }
 
-        // 【修改点4】：直接使用字符串名字加载场景
         SceneManager.LoadScene(targetSceneName);
     }
 
-    // --- 打字机效果 ---
+
     IEnumerator TypeEffect(StepUI s)
     {
         isTyping = true;

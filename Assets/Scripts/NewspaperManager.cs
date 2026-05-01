@@ -5,23 +5,21 @@ using UnityEngine.UI;
 
 public class NewspaperManager : MonoBehaviour
 {
-    [Header("UI References")]
     public TMP_Text titleSlot;
     public GameObject dialogueBox;
     public TMP_Text dialogueText;
     public GameObject speakerPortrait;
     public Button closeButton;
 
-    [Header("Speaker Portrait Layout")]
+    // portrait
     [SerializeField]
     private Vector2 speakerPortraitSize = new(640f, 640f);
     [SerializeField]
     private Vector2 speakerPortraitOffset = new(-740f, 85f);
 
-    [Header("Camera Logic")]
     public SmoothInteractionCamera camScript;
 
-    [Header("Publish Stamp Animation")]
+    // stamp
     [SerializeField]
     private Vector2 publishImpactOffset = new(0f, -28f);
     [SerializeField]
@@ -44,7 +42,6 @@ public class NewspaperManager : MonoBehaviour
     public bool isGameCompleted = false;
     private bool isPublishing = false;
 
-    // 用于记录当前选中选项对应的 NPC 点评文本
     private string currentFeedbackText = "";
 
     private bool hasTriggeredNotebookTutorial = false;
@@ -69,16 +66,12 @@ public class NewspaperManager : MonoBehaviour
         SetDialogueVisible(false);
     }
 
-    // 当玩家点击选项按钮时触发
     public void SetCurrentSelection(TitleOption option)
     {
         if (isGameCompleted || option == null) return;
 
-        // 更新报纸上的标题文字
         titleSlot.text = option.titleText;
-        // 记录该选项是否正确
         isCurrentSelectionCorrect = option.isCorrect;
-        // 记录该选项对应的 NPC 反馈台词
         currentFeedbackText = option.feedbackText;
 
         hasSelected = true;
@@ -283,20 +276,18 @@ public class NewspaperManager : MonoBehaviour
     {
         SetDialogueVisible(true);
 
-        // 默认保底文案（以防万一你在面板里没填）
+        // in case no respond in inspector
         string defaultSuccess = "That should read well.";
         string defaultFail = "Hmm… maybe something a bit more uplifting?";
 
         if (isCurrentSelectionCorrect)
         {
-            // 显示面板中填写的自定义点评，没填则用保底文案
             dialogueText.text = string.IsNullOrEmpty(currentFeedbackText) ? defaultSuccess : currentFeedbackText;
             if (closeButton != null) closeButton.interactable = true;
             isGameCompleted = true;
         }
         else
         {
-            // 同上，处理错误选项的评价
             dialogueText.text = string.IsNullOrEmpty(currentFeedbackText) ? defaultFail : currentFeedbackText;
             if (closeButton != null) closeButton.interactable = false;
         }

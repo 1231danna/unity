@@ -5,29 +5,22 @@ using UnityEngine.UI;
 
 public class IntroManager : MonoBehaviour
 {
-    [Header("UI 引用")]
     public CanvasGroup introGroup;
     public TMP_Text introText;
     public RectTransform filmGrainTransform;
     public Image filmGrainImage;
 
-    [Header("文字内容")]
     [TextArea(3, 5)]
     public string[] storyLines;
 
-    [Header("打字节奏")]
     [Range(0.01f, 0.2f)]
     public float baseTypingSpeed = 0.05f;
     public float fadeDuration = 1.0f;
 
-    [Header("组件引用")]
     public AudioSource audioSource;
     public AudioClip typeSound;
     public SmoothInteractionCamera camScript;
 
-    // --- 新增：正片背景音乐 ---
-    [Header("音乐设置")]
-    [Tooltip("开场动画结束后播放的背景音乐")]
     public AudioClip mainBGM;
 
     private string currentVisibleText = "";
@@ -105,7 +98,6 @@ public class IntroManager : MonoBehaviour
         float actualFadeDuration = skipRequested ? 0.1f : fadeDuration;
         // --- 【开发备注：结束】 ---
 
-        // 淡出黑屏
         float elapsed = 0;
         while (elapsed < actualFadeDuration)
         {
@@ -114,19 +106,16 @@ public class IntroManager : MonoBehaviour
             yield return null;
         }
 
-        // --- 恢复相机控制 ---
         if (camScript != null) camScript.SetCameraFrozen(false);
         introGroup.blocksRaycasts = false;
         
-        // --- 核心新增：呼叫 AudioManager 播放正式音乐 ---
         if (AudioManager.Instance != null && mainBGM != null)
         {
             AudioManager.Instance.PlayBGM(mainBGM);
         }
 
-        gameObject.SetActive(false); // 隐藏黑屏面板
+        gameObject.SetActive(false);
 
-        // --- 调用新手引导 ---
         TutorialManager tm = Object.FindFirstObjectByType<TutorialManager>();
         if (tm != null)
         {
@@ -134,7 +123,7 @@ public class IntroManager : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("未在场景中找到 TutorialManager，请检查是否挂载！");
+            Debug.LogWarning("cant find tutorial.");
         }
     }
 

@@ -3,18 +3,14 @@ using TMPro;
 
 public class TitleOption : MonoBehaviour
 {
-    [Header("选项设置")]
     [TextArea(2, 4)]
-    public string titleText; // 报纸上的标题
+    public string titleText; 
+    public bool isCorrect;
 
-    public bool isCorrect;   // 是否正确
-
-    [Header("点评内容")]
     [TextArea(2, 4)]
-    public string feedbackText; // 玩家点击发布后 NPC 说的话
+    public string feedbackText; 
 
-    [Header("UI 引用")]
-    public TMP_Text buttonText; // 按钮自己的文字
+    public TMP_Text buttonText; 
 
     private void OnValidate()
     {
